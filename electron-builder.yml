@@ -1,5 +1,5 @@
-appId: com.electron.app
-productName: probe
+appId: com.electron.template
+productName: electron-template
 directories:
   buildResources: build
 files:
@@ -12,7 +12,7 @@ files:
 asarUnpack:
   - resources/**
 win:
-  executableName: probe
+  executableName: electron-template
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
