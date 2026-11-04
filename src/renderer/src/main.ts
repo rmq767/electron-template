@@ -5,8 +5,8 @@ import 'element-plus/dist/index.css'
 // 暗黑模式变量：切换只改 html 上的 dark class；必须先于项目主题覆盖加载
 import 'element-plus/theme-chalk/dark/css-vars.css'
 
-import '@renderer/styles/index.css'
-import '@renderer/styles/element-theme.css'
+import '@renderer/styles/index.scss'
+import '@renderer/styles/element-theme.scss'
 
 import App from './app.vue'
 import router from './router'

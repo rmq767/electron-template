@@ -60,7 +60,7 @@ function refreshCurrent(): void {
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .tab-bar {
   display: flex;
   flex-shrink: 0;

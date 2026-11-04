@@ -112,7 +112,7 @@ defineExpose({ submit, cancel, validate, title })
   </el-form>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .full {
   width: 100%;
 }

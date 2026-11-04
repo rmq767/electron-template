@@ -53,7 +53,7 @@ onMounted(async () => {
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .splash-body {
   display: flex;
   flex: 1;
@@ -74,7 +74,7 @@ onMounted(async () => {
 
 .splash-mark {
   margin-bottom: 18px;
-  filter: drop-shadow(0 12px 24px rgba(15, 118, 110, 0.24));
+  filter: drop-shadow(var(--app-brand-glow));
 }
 
 .splash-content h1 {

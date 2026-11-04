@@ -63,7 +63,7 @@ onScopeDispose(() => window.removeEventListener('keydown', onKeydown))
   </window-shell>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .form-wrap {
   max-width: 720px;
 }

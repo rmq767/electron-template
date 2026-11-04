@@ -140,7 +140,7 @@ async function exportDiagnostics(): Promise<void> {
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .settings-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr);

@@ -165,7 +165,7 @@ void readTheme()
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .channel-row {
   display: flex;
   align-items: center;

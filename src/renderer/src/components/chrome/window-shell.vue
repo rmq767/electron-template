@@ -34,7 +34,7 @@ withDefaults(
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .window-shell {
   display: flex;
   flex-direction: column;
@@ -52,7 +52,7 @@ withDefaults(
   height: var(--app-titlebar-height);
   padding-left: 16px;
   background: var(--app-titlebar);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--app-chrome-divider);
   color: var(--app-sidebar-ink);
 }
 

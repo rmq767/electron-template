@@ -55,8 +55,11 @@ html.dark {
   --el-disabled-bg-color: var(--app-surface-muted);
   --el-disabled-text-color: var(--app-muted);
   --el-disabled-border-color: var(--app-border);
-  --el-mask-color: rgba(8, 12, 18, 0.42);
-  --el-mask-color-extra-light: rgba(8, 12, 18, 0.18);
+  --el-overlay-color: var(--app-mask);
+  --el-overlay-color-light: var(--app-mask-soft);
+  --el-overlay-color-lighter: var(--app-mask);
+  --el-mask-color: var(--app-mask);
+  --el-mask-color-extra-light: var(--app-mask-soft);
 }
 
 :root {

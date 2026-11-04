@@ -117,7 +117,7 @@ async function submit(): Promise<void> {
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .login-window__body {
   display: flex;
   flex: 1;
@@ -148,7 +148,7 @@ async function submit(): Promise<void> {
 
 .login-hero__mark {
   margin-bottom: 18px;
-  filter: drop-shadow(0 12px 24px rgba(15, 118, 110, 0.24));
+  filter: drop-shadow(var(--app-brand-glow));
 }
 
 .login-hero h1 {

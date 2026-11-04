@@ -18,7 +18,7 @@ withDefaults(defineProps<{ title?: string; minimize?: boolean }>(), {
   </header>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .window-brand-bar {
   display: flex;
   flex-shrink: 0;
@@ -26,7 +26,7 @@ withDefaults(defineProps<{ title?: string; minimize?: boolean }>(), {
   gap: 8px;
   height: var(--app-titlebar-height);
   padding-left: 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--app-chrome-divider);
   background: var(--app-titlebar);
 }
 

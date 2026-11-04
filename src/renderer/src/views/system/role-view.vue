@@ -104,14 +104,14 @@ function onInspect(row: RoleDTO): void {
         </div>
 
         <p class="role-detail__hint">
-          抽屉样式只有一份：my-drawer 与 my-dialog 共用 styles/element-theme.css。
+          抽屉样式只有一份：my-drawer 与 my-dialog 共用 styles/element-theme.scss。
         </p>
       </div>
     </my-drawer>
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .panel--table {
   overflow: hidden;
 }

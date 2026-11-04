@@ -92,7 +92,7 @@ function closeSelf(): void {
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .window-controls {
   display: flex;
   flex-shrink: 0;
@@ -127,12 +127,12 @@ function closeSelf(): void {
 }
 
 .window-control:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  background: var(--app-chrome-hover);
+  color: var(--app-chrome-hover-ink);
 }
 
 .window-control--close:hover {
-  background: #d9414f;
-  color: #fff;
+  background: var(--app-danger-solid);
+  color: var(--app-chrome-hover-ink);
 }
 </style>

@@ -68,7 +68,7 @@ async function onDelete(): Promise<void> {
         <h1>弹层示例</h1>
         <p>
           是 / 否用函数式确认，表单与详情用 dialog，内容长、需要侧向参照用 drawer；样式只有
-          element-theme.css 一份。
+          element-theme.scss 一份。
         </p>
       </div>
       <div class="view-head__actions">
@@ -133,7 +133,7 @@ async function onDelete(): Promise<void> {
             <span class="contract__mark" />
             <div>
               <strong>样式只有一份</strong>
-              <p>弹窗头部、圆角、内边距都在 styles/element-theme.css；组件内不再写 :deep 覆盖。</p>
+              <p>弹窗头部、圆角、内边距都在 styles/element-theme.scss；组件内不再写 :deep 覆盖。</p>
             </div>
           </div>
           <div class="contract__rule">
@@ -176,7 +176,7 @@ async function onDelete(): Promise<void> {
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .demo-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.45fr) minmax(300px, 1fr);

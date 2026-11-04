@@ -104,14 +104,14 @@ onMounted(async () => {
   </aside>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .side-nav {
   display: flex;
   flex-shrink: 0;
   flex-direction: column;
   width: var(--app-sidenav-width);
   background: var(--app-sidebar);
-  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  border-right: 1px solid var(--app-chrome-divider);
   transition: width 0.18s ease;
   overflow: hidden;
 }
@@ -127,7 +127,7 @@ onMounted(async () => {
 }
 
 .side-nav__scroll::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.16);
+  background: var(--app-sidebar-scrollbar);
   background-clip: content-box;
 }
 
@@ -137,7 +137,7 @@ onMounted(async () => {
 
 .side-nav__label {
   margin: 0 10px 6px;
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--app-sidebar-label);
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.12em;
@@ -218,7 +218,7 @@ onMounted(async () => {
   justify-content: space-between;
   gap: 8px;
   padding: 0 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid var(--app-chrome-divider);
 }
 
 .side-nav.is-collapsed .side-nav__footer {
@@ -254,7 +254,7 @@ onMounted(async () => {
 }
 
 .side-nav__version {
-  color: rgba(255, 255, 255, 0.32);
+  color: var(--app-sidebar-meta);
   font-family: var(--app-font-mono);
   font-size: 10px;
   white-space: nowrap;

@@ -15,7 +15,7 @@ const router = useRouter()
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .not-found {
   display: flex;
   min-height: 100%;

@@ -4,7 +4,7 @@ import { computed } from 'vue'
 defineOptions({ name: 'my-dialog' })
 
 /**
- * 全局弹窗组件：外观样式只在 styles/element-theme.css 里有一份。
+ * 全局弹窗组件：外观样式只在 styles/element-theme.scss 里有一份。
  * width 只接受具体值，不做 size 枚举档位。
  */
 const props = withDefaults(

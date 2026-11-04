@@ -125,7 +125,7 @@ main/window/app-icon.ts      从 .env 的 APP_ICON 解析运行时图标
 `my-dialog` / `my-drawer` 同 API 形态，`confirmAction` 是函数式确认（返回 Promise<boolean>）。
 `width`/`size` 只接受具体值，不做 size 枚举档位——要改就直接传值。
 
-样式只有一份：Element Plus 基础样式 + `styles/element-theme.css`（唯一覆盖点）。
+样式只有一份：Element Plus 基础样式 + `styles/element-theme.scss`（唯一覆盖点）。
 组件内禁止再写 `:deep(.el-dialog__header)` 这类局部覆盖，
 这样"弹窗头部圆角/内边距/最大高度"一改就全项目生效。
 
@@ -144,7 +144,7 @@ dialog、drawer 与独立窗口复用的原因。没有为此抽 `PopupHost` 之
 13px 基准字号、32px 控件高度、6/8/12px 圆角；不用大 hero、彩色卡片、面包屑式后台头部。
 主窗口、登录窗、启动页与独立窗口共用同一套无边框外壳，系统边框由 `window-controls` 自绘。
 
-**令牌**（`styles/index.css`，`html.dark` 是同语义映射）：
+**令牌**（`styles/index.scss`，`html.dark` 是同语义映射）：
 
 | 角色           | 亮色                  | 暗色                  | 用途              |
 | -------------- | --------------------- | --------------------- | ----------------- |
@@ -157,9 +157,13 @@ dialog、drawer 与独立窗口复用的原因。没有为此抽 `PopupHost` 之
 | `sidebar`      | `#1b2027`             | `#0e1115`             | 侧栏              |
 | `titlebar`     | `#14181e`             | `#0b0e12`             | 自定义标题栏      |
 
+`styles/index.scss` 用 `$theme-tokens` 的 light / dark 两套 map 生成 `:root` 与 `html.dark`；
+新增颜色、阴影令牌必须同时补齐两侧。标题栏、侧栏、窗口控件、品牌标与遮罩也全部走 `--app-*`，
+组件里不出现十六进制色值。组件样式统一 `<style scoped lang="scss">`。
+
 字体走系统 UI 栈（Segoe UI / PingFang / Microsoft YaHei）；正文 13px，页面标题 22px，
 控件 12–13px，等宽字体用于版本、编码与路径。Element Plus 的映射与组件覆盖集中在
-`styles/element-theme.css`；暗色变量 `theme-chalk/dark/css-vars.css` 必须先于覆盖文件加载，
+`styles/element-theme.scss`；暗色变量 `theme-chalk/dark/css-vars.css` 必须先于覆盖文件加载，
 否则 `html.dark` 的 Element 变量会盖掉项目主题。
 
 **组件**：
@@ -277,7 +281,8 @@ token 存 userData；401 → `clear()` → 守卫请求 `app:show-login`（浏�
 | 启动页                                 | 400×460 启动页创建 → 主窗后台加载（实测 `visible:false`）→ 达到 `APP_SPLASH_MIN_MS` 后启动页退场、主窗 show；任意时刻只有一个窗口可见；`app:ui-ready` 只认主窗口来源                                                                                                                              |
 | 主窗口首屏导航时序                     | router 在 `hydrate()/restore()` 前安装会先跑守卫，把有会话的用户误判未登录并切回登录窗；改为 restore 完成后再 `app.use(router)`                                                                                                                                                                   |
 | 自定义窗口控件                         | 最大化/还原后 `evt:window-state` 回推正确，图标切换；子窗口点标题栏 X 返回 `{ok:false, reason:'cancelled'}` 而不抛异常                                                                                                                                                                            |
-| 桌面主题覆盖顺序                       | Element 暗色变量必须先于 `element-theme.css`；反过来 `html.dark` 会盖掉项目令牌。亮/暗两套主题、文字按钮、plain 按钮均已实测                                                                                                                                                                      |
+| 桌面主题覆盖顺序                       | Element 暗色变量必须先于 `element-theme.scss`；反过来 `html.dark` 会盖掉项目令牌。亮/暗两套主题、文字按钮、plain 按钮均已实测                                                                                                                                                                     |
+| 弹层遮罩主题化                         | Element 的 `.el-overlay` 实际读 `--el-overlay-color-lighter`（不是 `--el-mask-color`）；已映射到 `--app-mask`，亮色 `rgba(8,12,18,.42)`、暗色 `rgba(0,0,0,.55)`，CDP 实测 computed `backgroundColor` 与令牌一致                                                                                   |
 | kebab-case 强制                        | 文件、模板标签、`defineOptions.name` 与路由 name 统一后，ESLint `vue/component-definition-name-casing` 零告警；标签页 keep-alive 正常                                                                                                                                                             |
 | 窗口首屏延迟 / 内存                    | 174–213ms / 约 150MB working set（高估，见 window-vs-dialog）                                                                                                                                                                                                                                     |
 | **中文路径是不是打包障碍**             | **不是**。同代码在 `D:\Projects\后台模板\electron-template` 与纯 ASCII 的 `D:\t\et` 推进到完全相同阶段、卡在同一处（`Timeout awaiting 'request' for 600000ms`，下载 winCodeSign/nsis 工具链）。原计划里"出包必须去 ASCII 路径"的假设**被证伪**，README 排障表已按实测改写                         |

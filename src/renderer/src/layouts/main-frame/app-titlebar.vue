@@ -93,14 +93,14 @@ async function onCommand(command: string | number | object): Promise<void> {
   </header>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .app-titlebar {
   display: flex;
   flex-shrink: 0;
   align-items: center;
   height: var(--app-titlebar-height);
   background: var(--app-titlebar);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--app-chrome-divider);
   color: var(--app-sidebar-ink);
 }
 
@@ -111,7 +111,7 @@ async function onCommand(command: string | number | object): Promise<void> {
   width: var(--app-sidenav-width);
   height: 100%;
   padding: 0 16px;
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  border-right: 1px solid var(--app-chrome-divider);
   transition: width 0.18s ease;
 }
 
@@ -134,8 +134,8 @@ async function onCommand(command: string | number | object): Promise<void> {
 .app-titlebar__env {
   padding: 1px 5px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.09);
-  color: #d7dee9;
+  background: var(--app-chrome-env-bg);
+  color: var(--app-chrome-env-ink);
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -155,7 +155,7 @@ async function onCommand(command: string | number | object): Promise<void> {
 }
 
 .app-titlebar__slash {
-  color: rgba(255, 255, 255, 0.18);
+  color: var(--app-chrome-slash);
 }
 
 .app-titlebar__current {
@@ -235,8 +235,8 @@ async function onCommand(command: string | number | object): Promise<void> {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: rgba(94, 211, 196, 0.16);
-  color: #8ee6da;
+  background: var(--app-brand-avatar-bg);
+  color: var(--app-brand-avatar-ink);
   font-size: 10px;
   font-weight: 700;
 }

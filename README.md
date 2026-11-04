@@ -124,10 +124,12 @@ preload 与渲染层，业务代码只从 `src/shared/constants/app.ts` 读。`e
 
 ## 界面系统
 
-- **设计令牌**：颜色、字号、间距、圆角、阴影全部在 `src/renderer/src/styles/index.css`，
-  `html.dark` 是同一套语义变量的暗色映射。
-- **Element Plus 覆盖**：只在 `src/renderer/src/styles/element-theme.css` 一处；
+- **设计令牌**：颜色、字号、间距、圆角、阴影全部在 `src/renderer/src/styles/index.scss`，
+  `html.dark` 是同一套语义变量的暗色映射；新增令牌必须在 light / dark 两侧同时补齐。
+- **Element Plus 覆盖**：只在 `src/renderer/src/styles/element-theme.scss` 一处；
   组件内不再写 `:deep(.el-dialog__header)` 这类局部覆盖。
+- **SCSS**：组件统一 `<style scoped lang="scss">`；颜色只允许引用 `--app-*` 令牌，
+  组件样式里不写死色值。
 - **命名**：组件文件、模板标签、`defineOptions.name` 与路由 `name` 一律 kebab-case，
   ESLint 的 `vue/component-definition-name-casing` 已强制。
 - **窗口外观**：主窗口、登录窗、启动页与独立窗口都使用无系统边框 + 自定义标题栏；
@@ -202,7 +204,8 @@ preload 与渲染层，业务代码只从 `src/shared/constants/app.ts` 读。`e
 | Vue           | 3.5.44    |                                                                                                                                                   |
 | Vue Router    | 5.4.0     |                                                                                                                                                   |
 | Pinia         | 4.1.0     |                                                                                                                                                   |
-| Element Plus  | 2.14.7    | 全量引入；主题覆盖只在 `styles/element-theme.css` 一处                                                                                            |
+| Element Plus  | 2.14.7    | 全量引入；主题覆盖只在 `styles/element-theme.scss` 一处                                                                                           |
+| Sass          | 1.107.1   | 仅作 SCSS 预处理；Vite 内置支持，无额外构建插件                                                                                                   |
 | TypeScript    | **6.0.3** | 官方脚手架与 vue-tsc 3.3.14 的当前稳定线。7.0.2 实测与 `vue-tsc` 硬冲突（`ERR_PACKAGE_PATH_NOT_EXPORTED`），已在回退阶梯里，等 vue-tsc 适配后可升 |
 
 编码与协作规则见 [AGENTS.md](AGENTS.md)；架构与契约细节见 [DESIGN.md](DESIGN.md)。

@@ -16,7 +16,7 @@ const cached = computed(() => tabs.cachedNames)
   </main>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .content-area {
   flex: 1;
   padding: 20px 24px 28px;

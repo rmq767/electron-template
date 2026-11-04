@@ -1,7 +1,113 @@
+@use 'sass:map';
+
 /* 渲染进程全局样式：设计令牌 + 基础重置 + 跨页共享的桌面布局原语。
-   Element Plus 的覆盖只允许出现在 element-theme.css。 */
+   Element Plus 的覆盖只允许出现在 element-theme.scss。
+   颜色与阴影按主题成对定义：新增令牌时必须在 light / dark 两侧同时补齐。 */
+
+$theme-tokens: (
+  light: (
+    canvas: #f2f3f5,
+    login-bg: #f3f1ec,
+    surface: #ffffff,
+    surface-muted: #f7f8fa,
+    surface-hover: #eef0f4,
+    border: #e2e5ea,
+    border-strong: #cfd4dc,
+    ink: #171a21,
+    ink-soft: #4c5563,
+    muted: #7d8797,
+    accent: #0f766e,
+    accent-solid: #0f766e,
+    accent-soft: #e2f3f0,
+    danger: #d64d5f,
+    danger-solid: #d9414f,
+    warning: #a96a12,
+    success: #147a5b,
+    titlebar: #14181e,
+    sidebar: #1b2027,
+    sidebar-ink: #939dac,
+    sidebar-ink-strong: #f3f5f8,
+    sidebar-hover: rgba(255, 255, 255, 0.05),
+    sidebar-active: rgba(255, 255, 255, 0.08),
+    sidebar-label: rgba(255, 255, 255, 0.3),
+    sidebar-scrollbar: rgba(255, 255, 255, 0.16),
+    sidebar-meta: rgba(255, 255, 255, 0.32),
+    chrome-divider: rgba(255, 255, 255, 0.06),
+    chrome-hover: rgba(255, 255, 255, 0.08),
+    chrome-hover-ink: #ffffff,
+    chrome-slash: rgba(255, 255, 255, 0.18),
+    chrome-env-bg: rgba(255, 255, 255, 0.09),
+    chrome-env-ink: #d7dee9,
+    brand-gradient: linear-gradient(145deg, #3aa899 0%, #0f766e 58%, #0a4f4a 100%),
+    brand-ink: #ffffff,
+    brand-inset: inset 0 1px 0 rgba(255, 255, 255, 0.32),
+    brand-shadow: 0 2px 8px rgba(15, 118, 110, 0.3),
+    brand-glow: 0 12px 24px rgba(15, 118, 110, 0.24),
+    brand-avatar-bg: rgba(94, 211, 196, 0.16),
+    brand-avatar-ink: #8ee6da,
+    mask: rgba(8, 12, 18, 0.42),
+    mask-soft: rgba(8, 12, 18, 0.18),
+    shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.05),
+    shadow-md: 0 10px 30px rgba(15, 23, 42, 0.09),
+    shadow-lg: 0 24px 70px rgba(15, 23, 42, 0.18)
+  ),
+  dark: (
+    canvas: #13161b,
+    login-bg: #12161b,
+    surface: #1a1e25,
+    surface-muted: #20252d,
+    surface-hover: #252b34,
+    border: #2a303a,
+    border-strong: #3a4350,
+    ink: #e9ecf1,
+    ink-soft: #b8c0cc,
+    muted: #8792a2,
+    accent: #5ed3c4,
+    accent-solid: #12857a,
+    accent-soft: rgba(94, 211, 196, 0.13),
+    danger: #ef6b7b,
+    danger-solid: #c93a48,
+    warning: #d9a54a,
+    success: #45bd92,
+    titlebar: #0b0e12,
+    sidebar: #0e1115,
+    sidebar-ink: #8b95a4,
+    sidebar-ink-strong: #f5f7fa,
+    sidebar-hover: rgba(255, 255, 255, 0.045),
+    sidebar-active: rgba(255, 255, 255, 0.075),
+    sidebar-label: rgba(255, 255, 255, 0.26),
+    sidebar-scrollbar: rgba(255, 255, 255, 0.12),
+    sidebar-meta: rgba(255, 255, 255, 0.28),
+    chrome-divider: rgba(255, 255, 255, 0.05),
+    chrome-hover: rgba(255, 255, 255, 0.07),
+    chrome-hover-ink: #ffffff,
+    chrome-slash: rgba(255, 255, 255, 0.14),
+    chrome-env-bg: rgba(255, 255, 255, 0.08),
+    chrome-env-ink: #d7dee9,
+    brand-gradient: linear-gradient(145deg, #3aa899 0%, #0f766e 58%, #0a4f4a 100%),
+    brand-ink: #ffffff,
+    brand-inset: inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    brand-shadow: 0 2px 10px rgba(0, 0, 0, 0.45),
+    brand-glow: 0 14px 30px rgba(94, 211, 196, 0.16),
+    brand-avatar-bg: rgba(94, 211, 196, 0.14),
+    brand-avatar-ink: #a7efe5,
+    mask: rgba(0, 0, 0, 0.55),
+    mask-soft: rgba(0, 0, 0, 0.3),
+    shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25),
+    shadow-md: 0 10px 30px rgba(0, 0, 0, 0.35),
+    shadow-lg: 0 24px 70px rgba(0, 0, 0, 0.55)
+  )
+);
+
+@mixin emit-theme-tokens($tokens) {
+  @each $name, $value in $tokens {
+    --app-#{$name}: #{$value};
+  }
+}
 
 :root {
+  @include emit-theme-tokens(map.get($theme-tokens, light));
+
   --app-font-sans:
     'Segoe UI Variable Text', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei UI', 'Microsoft YaHei',
     system-ui, -apple-system, sans-serif;
@@ -12,74 +118,13 @@
   --app-sidenav-width: 224px;
   --app-sidenav-collapsed-width: 68px;
 
-  --app-canvas: #f2f3f5;
-  --app-login-bg: #f3f1ec;
-  --app-surface: #ffffff;
-  --app-surface-muted: #f7f8fa;
-  --app-surface-hover: #eef0f4;
-  --app-border: #e2e5ea;
-  --app-border-strong: #cfd4dc;
-
-  --app-ink: #171a21;
-  --app-ink-soft: #4c5563;
-  --app-muted: #7d8797;
-
-  --app-accent: #0f766e;
-  --app-accent-solid: #0f766e;
-  --app-accent-soft: #e2f3f0;
-  --app-danger: #d64d5f;
-  --app-warning: #a96a12;
-  --app-success: #147a5b;
-
-  --app-titlebar: #14181e;
-  --app-sidebar: #1b2027;
-  --app-sidebar-elevated: #222831;
-  --app-sidebar-ink: #939dac;
-  --app-sidebar-ink-strong: #f3f5f8;
-  --app-sidebar-hover: rgba(255, 255, 255, 0.05);
-  --app-sidebar-active: rgba(255, 255, 255, 0.08);
-
-  --app-shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.05);
-  --app-shadow-md: 0 10px 30px rgba(15, 23, 42, 0.09);
-  --app-shadow-lg: 0 24px 70px rgba(15, 23, 42, 0.18);
-
   --app-radius-sm: 6px;
   --app-radius-md: 8px;
   --app-radius-lg: 12px;
-  --app-radius-xl: 16px;
 }
 
 html.dark {
-  --app-canvas: #13161b;
-  --app-login-bg: #12161b;
-  --app-surface: #1a1e25;
-  --app-surface-muted: #20252d;
-  --app-surface-hover: #252b34;
-  --app-border: #2a303a;
-  --app-border-strong: #3a4350;
-
-  --app-ink: #e9ecf1;
-  --app-ink-soft: #b8c0cc;
-  --app-muted: #8792a2;
-
-  --app-accent: #5ed3c4;
-  --app-accent-solid: #12857a;
-  --app-accent-soft: rgba(94, 211, 196, 0.13);
-  --app-danger: #ef6b7b;
-  --app-warning: #d9a54a;
-  --app-success: #45bd92;
-
-  --app-titlebar: #0b0e12;
-  --app-sidebar: #0e1115;
-  --app-sidebar-elevated: #161b21;
-  --app-sidebar-ink: #8b95a4;
-  --app-sidebar-ink-strong: #f5f7fa;
-  --app-sidebar-hover: rgba(255, 255, 255, 0.045);
-  --app-sidebar-active: rgba(255, 255, 255, 0.075);
-
-  --app-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
-  --app-shadow-md: 0 10px 30px rgba(0, 0, 0, 0.35);
-  --app-shadow-lg: 0 24px 70px rgba(0, 0, 0, 0.55);
+  @include emit-theme-tokens(map.get($theme-tokens, dark));
 }
 
 html,

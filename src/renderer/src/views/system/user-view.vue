@@ -141,7 +141,7 @@ onMounted(load)
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .panel--table {
   overflow: hidden;
 }

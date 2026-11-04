@@ -33,6 +33,9 @@ export default defineConfig(
         {
           script: {
             lang: 'ts'
+          },
+          style: {
+            lang: 'scss'
           }
         }
       ]

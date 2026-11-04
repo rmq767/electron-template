@@ -15,7 +15,7 @@ withDefaults(defineProps<{ ready: boolean; error?: string; rows?: number }>(), {
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .window-gate__skeleton {
   padding: 16px;
 }

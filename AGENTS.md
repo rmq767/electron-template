@@ -102,7 +102,8 @@ src/renderer   普通 Vue 应用；禁 Node/electron，只认 window.api
 
 ## 7. 界面系统
 
-- 设计令牌只在 [styles/index.css](src/renderer/src/styles/index.css)；Element Plus 覆盖只在 [styles/element-theme.css](src/renderer/src/styles/element-theme.css)。
+- 设计令牌只在 [styles/index.scss](src/renderer/src/styles/index.scss)；Element Plus 覆盖只在 [styles/element-theme.scss](src/renderer/src/styles/element-theme.scss)。
+- 样式统一用 SCSS：组件写 `<style scoped lang="scss">`，ESLint 已强制；新增颜色/阴影先加 `--app-*` 令牌，light / dark 两侧同时补齐。
 - **禁止在组件里写 `:deep(.el-dialog__header)` 这类局部 Element 覆盖**；要改就改主题文件，让全项目生效。
 - 颜色、字号、间距、圆角、阴影一律用 token，不写死十六进制色值；亮/暗两套主题必须同时可用。
 - 组件文件、模板标签、`defineOptions.name`、路由 `name` 一律 **kebab-case**；ESLint 已强制，不要关规则。

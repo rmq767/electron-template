@@ -18,7 +18,7 @@ import ContentArea from './content-area.vue'
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .main-frame {
   display: flex;
   flex-direction: column;
