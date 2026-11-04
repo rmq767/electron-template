@@ -26,6 +26,8 @@ export default defineConfig(
     rules: {
       'vue/require-default-prop': 'off',
       'vue/multi-word-component-names': 'off',
+      // 项目约定：组件文件、模板标签与 defineOptions.name 统一 kebab-case
+      'vue/component-definition-name-casing': ['error', 'kebab-case'],
       'vue/block-lang': [
         'error',
         {
@@ -37,10 +39,11 @@ export default defineConfig(
     }
   },
   {
-    // scripts/ 下是给 node 直接跑的纯 JS 工具，不适用 TS 项目的写法约束
-    files: ['scripts/**/*.mjs'],
+    // scripts/ 与 electron-builder.js 是给 node 直接跑的纯 JS 工具，不适用 TS 项目的写法约束
+    files: ['scripts/**/*.mjs', 'electron-builder.js'],
     rules: {
-      '@typescript-eslint/explicit-function-return-type': 'off'
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/no-require-imports': 'off'
     }
   },
   {

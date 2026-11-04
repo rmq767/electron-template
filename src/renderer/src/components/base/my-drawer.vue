@@ -1,27 +1,26 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-/**
- * 全局弹窗组件：外观样式只在 styles/element-theme.css 里有一份。
- * width 只接受具体值，不做 size 枚举档位。
- */
+defineOptions({ name: 'my-drawer' })
+
+/** 与 my-dialog 同 API 形态的抽屉版，便于按场景切换而不改调用侧。 */
 const props = withDefaults(
   defineProps<{
     modelValue: boolean
     title?: string
-    width?: number | string
+    size?: number | string
     loading?: boolean
     showFooter?: boolean
     closeOnClickModal?: boolean
-    destroyOnClose?: boolean
+    direction?: 'ltr' | 'rtl' | 'ttb' | 'btt'
   }>(),
   {
     title: '',
-    width: 640,
+    size: 560,
     loading: false,
     showFooter: true,
     closeOnClickModal: false,
-    destroyOnClose: true
+    direction: 'rtl'
   }
 )
 
@@ -44,13 +43,14 @@ function onCancel(): void {
 </script>
 
 <template>
-  <el-dialog
+  <!-- append-to-body：页面 .view 的入场动画保留 transform，会限制 fixed 弹层；必须挂到 body 才是整窗遮蔽 -->
+  <el-drawer
     v-model="visible"
     :title="title"
-    :width="width"
+    :size="size"
+    :direction="direction"
     :close-on-click-modal="closeOnClickModal"
-    :destroy-on-close="destroyOnClose"
-    draggable
+    append-to-body
     @closed="emit('closed')"
   >
     <slot />
@@ -60,5 +60,5 @@ function onCancel(): void {
         <el-button type="primary" :loading="loading" @click="emit('confirm')">确定</el-button>
       </slot>
     </template>
-  </el-dialog>
+  </el-drawer>
 </template>

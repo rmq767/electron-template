@@ -3,9 +3,9 @@ import type { AuthSession } from '../types/auth'
 import type {
   OpenOutcome,
   OpenWindowOptions,
+  WindowChromeState,
   WindowKind,
-  WindowPayload,
-  WindowResultMap
+  WindowPayload
 } from './window-spec'
 import { IPC } from './channels'
 
@@ -16,11 +16,18 @@ import { IPC } from './channels'
 export interface RequestSchema {
   [IPC.App.GetInfo]: { req: undefined; res: AppInfo }
   [IPC.App.ExportDiagnostics]: { req: undefined; res: string }
+  [IPC.App.CompleteLogin]: { req: undefined; res: void }
+  [IPC.App.ShowLogin]: { req: undefined; res: void }
+  [IPC.App.UiReady]: { req: undefined; res: void }
   [IPC.Window.Open]: { req: OpenWindowInput; res: OpenOutcome<unknown> }
   [IPC.Window.Close]: { req: { result?: unknown }; res: void }
   [IPC.Window.GetPayload]: { req: undefined; res: WindowPayload }
   [IPC.Window.PushProps]: { req: { windowId: string; props: unknown }; res: void }
   [IPC.Window.Focus]: { req: { windowId: string }; res: void }
+  [IPC.Window.Minimize]: { req: undefined; res: void }
+  [IPC.Window.ToggleMaximize]: { req: undefined; res: boolean }
+  [IPC.Window.GetState]: { req: undefined; res: WindowChromeState }
+  [IPC.Window.CloseSelf]: { req: undefined; res: void }
   [IPC.Store.Get]: { req: { key: SettingsKey }; res: SettingsValue | undefined }
   [IPC.Store.Set]: { req: { key: SettingsKey; value: unknown }; res: void }
   [IPC.Dialog.OpenFile]: { req: OpenFileOptions | undefined; res: string[] | null }
@@ -47,6 +54,7 @@ export type RequestResult<C extends InvokeChannel> = RequestSchema[C]['res']
 /** 主进程主动推送的事件契约。 */
 export interface EventSchema {
   [IPC.Evt.WindowProps]: { windowId: string; props: unknown }
+  [IPC.Evt.WindowState]: WindowChromeState
 }
 
 export type EventChannel = keyof EventSchema
@@ -65,6 +73,3 @@ export type SettingsValueOf<K extends SettingsKey> = K extends 'ui.theme'
     : boolean
 
 export type SettingsValue = SettingsValueOf<SettingsKey>
-
-/** 供 preload 侧把未知结果收敛回业务类型时使用。 */
-export type ResultOfKind<K extends WindowKind> = OpenOutcome<WindowResultMap[K]>

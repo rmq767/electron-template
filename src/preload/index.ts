@@ -1,5 +1,4 @@
 import { contextBridge } from 'electron'
-import { electronAPI } from '@electron-toolkit/preload'
 import type { Api } from './api/types'
 import { appApi } from './api/app'
 import { dialogApi } from './api/dialog'
@@ -18,7 +17,6 @@ const api = {
 } satisfies Api
 
 if (process.contextIsolated) {
-  contextBridge.exposeInMainWorld('electron', electronAPI)
   contextBridge.exposeInMainWorld('api', api)
 } else {
   // 隔离一旦关掉，contextBridge 就不生效；此处绝不退化成直接挂 window.xxx，

@@ -1,7 +1,7 @@
 import { ref, watch } from 'vue'
 import { defineStore } from 'pinia'
 
-export type AppTheme = 'light' | 'dark'
+type AppTheme = 'light' | 'dark'
 
 /**
  * 界面偏好。持久化走主进程（userData/settings.json），
@@ -10,7 +10,6 @@ export type AppTheme = 'light' | 'dark'
 export const useAppStore = defineStore('app', () => {
   const theme = ref<AppTheme>('light')
   const sidebarCollapsed = ref(false)
-  const hydrated = ref(false)
 
   function applyTheme(): void {
     document.documentElement.classList.toggle('dark', theme.value === 'dark')
@@ -24,7 +23,6 @@ export const useAppStore = defineStore('app', () => {
     if (savedTheme) theme.value = savedTheme
     sidebarCollapsed.value = savedCollapsed ?? false
     applyTheme()
-    hydrated.value = true
   }
 
   watch(theme, (value) => {
@@ -44,5 +42,5 @@ export const useAppStore = defineStore('app', () => {
     sidebarCollapsed.value = !sidebarCollapsed.value
   }
 
-  return { theme, sidebarCollapsed, hydrated, hydrate, toggleTheme, toggleSidebar }
+  return { theme, sidebarCollapsed, hydrate, toggleTheme, toggleSidebar }
 })

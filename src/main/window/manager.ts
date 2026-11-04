@@ -1,7 +1,5 @@
 import { join } from 'path'
-import { pathToFileURL } from 'url'
 import { BrowserWindow } from 'electron'
-import { is } from '@electron-toolkit/utils'
 import { IPC } from '@shared/ipc/channels'
 import type {
   OpenOutcome,
@@ -12,11 +10,14 @@ import type {
 import { logger } from '@main/log/logger'
 import { windowPresets } from './presets'
 import { attachWindowLifecycle } from './lifecycle'
+import { attachWindowChrome } from './chrome'
+import { resolveAppIcon } from './app-icon'
+import { rendererEntry } from './entry'
 import * as registry from './registry'
 
 let mainWindow: BrowserWindow | null = null
 
-export function setMainWindow(win: BrowserWindow): void {
+export function setMainWindow(win: BrowserWindow | null): void {
   mainWindow = win
 }
 
@@ -24,15 +25,8 @@ export function getMainWindow(): BrowserWindow | null {
   return mainWindow
 }
 
-/**
- * 单入口 + hash 分路由：独立窗口与主界面共用同一份 index.html 与 chunk，
- * dev / HMR / 生产 file:// 只有一条路径。
- */
 function entryHref(kind: WindowKind, windowId: string): string {
-  const hash = `#/w/${kind}?windowId=${encodeURIComponent(windowId)}`
-  const devUrl = process.env['ELECTRON_RENDERER_URL']
-  if (is.dev && devUrl) return `${devUrl.replace(/\/$/, '')}/${hash}`
-  return `${pathToFileURL(join(__dirname, '../renderer/index.html')).href}${hash}`
+  return rendererEntry(`/w/${kind}?windowId=${encodeURIComponent(windowId)}`)
 }
 
 export function openWindow(
@@ -42,6 +36,7 @@ export function openWindow(
   openerContentsId?: number
 ): Promise<OpenOutcome<unknown>> {
   const preset = windowPresets[kind]
+  if (!preset) throw new Error(`[window] 未知窗口类型：${kind}`)
 
   const existing = preset.singleton ? registry.findByKind(kind) : undefined
   if (existing) {
@@ -61,7 +56,10 @@ export function openWindow(
     height: options?.height ?? preset.height,
     title: options?.title ?? preset.title,
     show: false,
+    frame: false,
+    roundedCorners: true,
     backgroundColor: '#f4f5f7',
+    icon: resolveAppIcon(),
     // 模态必须同时给 parent 与 modal，二者缺一不可
     parent: preset.modal ? (mainWindow ?? undefined) : undefined,
     modal: preset.modal,
@@ -79,6 +77,8 @@ export function openWindow(
       additionalArguments: [`--window-id=${windowId}`, `--window-kind=${kind}`]
     }
   })
+
+  attachWindowChrome(win)
 
   registry.add({
     windowId,
@@ -149,7 +149,7 @@ export function focusWindow(windowId: string): void {
 export function closeAllWindows(): void {
   for (const entry of registry.list()) {
     registry.settle(entry.windowId, { ok: false, reason: 'closed-by-parent' })
+    registry.remove(entry.windowId)
     if (!entry.win.isDestroyed()) entry.win.destroy()
   }
-  registry.list().forEach((entry) => registry.remove(entry.windowId))
 }

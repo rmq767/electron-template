@@ -3,6 +3,7 @@ import type { SettingsKey, SettingsValueOf } from '@shared/ipc/schema'
 import type {
   OpenOutcome,
   OpenWindowOptions,
+  WindowChromeState,
   WindowKind,
   WindowPayload,
   WindowPropsMap,
@@ -19,6 +20,12 @@ export interface Api {
     getInfo(): Promise<AppInfo>
     /** 生成诊断包并返回文件路径。 */
     exportDiagnostics(): Promise<string>
+    /** 登录窗口专用：通知主进程完成登录，登录窗关闭后主窗口展示。 */
+    completeLogin(): Promise<void>
+    /** 主窗口专用：退出登录并切回登录窗口。 */
+    showLogin(): Promise<void>
+    /** 主窗口渲染层完成首屏挂载；启动页据此退场。 */
+    uiReady(): Promise<void>
   }
   /**
    * 读写 userData/settings.json。
@@ -56,5 +63,14 @@ export interface Api {
     /** 返回解绑函数，组件卸载必须调用，否则监听器跨窗口残留。 */
     pushProps<K extends WindowKind>(callback: (props: WindowPropsMap[K]) => void): () => void
     focus(windowId: string): Promise<void>
+    /** 自定义标题栏：最小化当前窗口。 */
+    minimize(): Promise<void>
+    /** 返回切换后的最大化状态。 */
+    toggleMaximize(): Promise<boolean>
+    getState(): Promise<WindowChromeState>
+    /** 关闭当前窗口（不放回结果，等价用户点 X）。 */
+    closeSelf(): Promise<void>
+    /** 最大/还原状态推送，返回解绑函数。 */
+    onState(callback: (state: WindowChromeState) => void): () => void
   }
 }

@@ -1,12 +1,13 @@
 import { join } from 'path'
-import { BrowserWindow, shell } from 'electron'
-import { is } from '@electron-toolkit/utils'
+import { BrowserWindow } from 'electron'
 import { APP_NAME } from '@shared/constants/app'
-import icon from '../../../resources/icon.png?asset'
+import { rendererEntry } from './entry'
+import { attachWindowChrome } from './chrome'
+import { resolveAppIcon } from './app-icon'
 
 /**
- * 主窗口。独立弹窗（window 体系）在 Step 6 由 window/manager.ts 统一管理，
- * 那里是新建 BrowserWindow 的唯一入口；本文件只负责主窗口本身。
+ * 主窗口。无系统边框，标题栏由渲染层绘制（与登录窗、独立窗口保持同一套桌面外观）。
+ * 独立弹窗在 window/manager.ts 统一管理；本文件只负责主窗口本身。
  */
 export function createMainWindow(): BrowserWindow {
   const mainWindow = new BrowserWindow({
@@ -14,14 +15,15 @@ export function createMainWindow(): BrowserWindow {
     height: 800,
     minWidth: 1024,
     minHeight: 640,
-    // 先建后显：配合 backgroundColor 消掉首帧白闪，不需要额外的 splash 窗口
+    center: true,
+    frame: false,
+    roundedCorners: true,
+    // 先建后显：配合 backgroundColor 消掉首帧白闪
     show: false,
     backgroundColor: '#f4f5f7',
-    // 只是加载期的占位标题：页面 <title> 一旦生效就会覆盖它（实测确认），
-    // 所以路由标题与环境标记由渲染进程设置，见 renderer/src/router/guards.ts。
     title: APP_NAME,
+    icon: resolveAppIcon(),
     autoHideMenuBar: true,
-    ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       // 官方 electron-vite 模板即为 sandbox: false —— 沙箱化的 preload 无法加载打包后的模块。
@@ -32,19 +34,10 @@ export function createMainWindow(): BrowserWindow {
     }
   })
 
-  mainWindow.on('ready-to-show', () => mainWindow.show())
+  attachWindowChrome(mainWindow)
 
-  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    // 应用内不新开浏览器窗口；需要新窗口时走 window/manager。只放行 http(s) 给系统浏览器。
-    if (/^https?:\/\//i.test(url)) shell.openExternal(url)
-    return { action: 'deny' }
-  })
-
-  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
-  } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
-  }
+  // 何时 show 由 app-flow 决定：登录/启动页退场前，主窗口只加载不显示。
+  void mainWindow.loadURL(rendererEntry('/home'))
 
   return mainWindow
 }

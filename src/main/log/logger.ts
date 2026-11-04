@@ -96,6 +96,5 @@ export const logger = {
     write({ level: 'error', scope: 'main', message, meta }),
   /** 渲染进程经 IPC.Log.Write 汇入，落进同一份文件。 */
   fromRenderer: (entry: LogEntry): void => write({ ...entry, scope: 'renderer' }),
-  dir: logDir,
-  prune: pruneLogs
+  dir: logDir
 } as const

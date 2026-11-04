@@ -36,11 +36,7 @@ export function handle<C extends InvokeChannel>(
 ): void {
   ipcMain.handle(channel, async (event: IpcMainInvokeEvent, payload: RequestPayload<C>) => {
     const sender = event.sender
-    const trusted =
-      !sender.isDestroyed() &&
-      BrowserWindow.getAllWindows().some(
-        (win) => !win.isDestroyed() && win.webContents.id === sender.id
-      )
+    const trusted = !sender.isDestroyed() && BrowserWindow.fromWebContents(sender) !== null
     if (!trusted) {
       logger.warn(`拒绝未知来源的 IPC 调用：${channel}`)
       throw new Error(`[ipc] E_UNKNOWN_SENDER: ${channel}`)

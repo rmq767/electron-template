@@ -75,19 +75,21 @@
 升级动作只有一步：给这个表单加一条 window preset + 一条 `/w/xxx` 路由，
 把 `<UserForm :model @done @cancel>` 原样搬过去。
 **因为表单主体组件被约定为不 import 弹层、不感知容器，所以不重写任何业务逻辑。**
-模板里 `views/system/components/UserForm.vue` 同时被 `MyDialog`、`MyDrawer`
-和独立窗口 `w/UserFormWindow.vue` 三处复用，就是这个约定的现成证据。
+模板里 `views/system/components/user-form.vue` 同时被 `my-dialog`、`my-drawer`
+和独立窗口 `windows/user-form-window.vue` 三处复用，就是这个约定的现成证据。
 
 **2. 长任务**
 
 批量导出（进度要跨路由存活、用户可能切页继续看）→ window。
 "正在导出…"只是当前页的 loading 遮罩 → `ElLoading` 即可。
 
-**3. 不要为了"显得企业级"而做 splash / 多窗口**
+**3. 登录窗与启动页是启动面，不是通用浮层**
 
-启动白闪的正解是主窗口 `show: false` + `ready-to-show` + `backgroundColor`，
-不需要额外窗口去遮。splash 本身等于多一个渲染进程 + 一套"什么时候关它"的分支，
-是这张表里典型的"不命中任何触发条件却用了 window"。
+登录窗承载真实的账号密码交互；无需登录时，启动页等待主窗口完成首屏（`app:ui-ready`）。
+两者都用独立窗口成立，但都不进入 `window/registry`（registry 的语义是带参进/结果出的业务弹层）。
+
+它们也不是「遮白闪」的万能方案：启动白闪仍靠主窗口 `show: false` + `ready-to-show` + `backgroundColor`，
+不要为其他业务再造一个只显示 logo 的 splash 窗口——那是多一个渲染进程 + 一套"什么时候关它"的分支。
 
 **4. 列表页行内详情不要用 window。**
 
@@ -95,7 +97,7 @@
 
 ## 默认档位
 
-`MyDialog`（表单/详情）→ `MyDrawer`（超长内容、侧向参照）→ `MyConfirm`（是/否）
+`my-dialog`（表单/详情）→ `my-drawer`（超长内容、侧向参照）→ `confirmAction`（是/否）
 → window（仅命中触发条件）。
 
 在应用里可直接对照操作：**概览页 → 弹层示例 / 独立窗口示例**，

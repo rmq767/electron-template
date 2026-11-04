@@ -6,7 +6,6 @@ import type { WindowKind } from '@shared/ipc/window-spec'
  * 不建 BaseWindow 继承树。
  */
 export interface WindowPreset {
-  kind: WindowKind
   title: string
   width: number
   height: number
@@ -24,17 +23,15 @@ export interface WindowPreset {
 
 export const windowPresets: Record<WindowKind, WindowPreset> = {
   'user-form': {
-    kind: 'user-form',
     title: '用户表单',
-    width: 780,
-    height: 640,
+    width: 720,
+    height: 560,
     modal: false,
     resizable: true,
     singleton: false,
     skipTaskbar: true
   },
   'export-task': {
-    kind: 'export-task',
     title: '导出任务',
     width: 560,
     height: 420,

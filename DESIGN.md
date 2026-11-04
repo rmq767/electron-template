@@ -1,7 +1,9 @@
 # DESIGN
 
-模板的架构、契约，以及**被有意砍掉的东西和理由**。
+模板的架构、契约、界面系统，以及**被有意砍掉的东西和理由**。
 怎么用请看 [README.md](README.md)；弹窗选型请看 [docs/window-vs-dialog.md](docs/window-vs-dialog.md)。
+
+默认品牌 `Aster` 只是示例：名称、副标题、App ID、图标文件名都在 `.env`，改一处三端与安装包同步。
 
 ---
 
@@ -24,17 +26,47 @@ src/renderer   渲染进程：普通 Vue 应用，禁 Node，只认 window.api
 
 ---
 
+## 配置：应用身份只有 .env 一处
+
+```
+.env                         APP_NAME / APP_TAGLINE / APP_ID / APP_ICON / APP_FEATURE_LOGIN
+electron.vite.config.ts      loadEnv 后 define 注入 main / preload / renderer
+src/shared/constants/app.ts  三端唯一读取入口（纯常量，不碰运行时环境）
+electron-builder.js          同一份 .env → productName / appId / 运行时图标
+```
+
+为什么不用 `RENDERER_VITE_*` 前缀：应用身份是**三端共用**的，不是渲染层私有；
+而且同一个值还要给 electron-builder 用。用 `define` 注入可以避免在三个进程里各读一次 env，
+也避免在页面里再写死一份名称。图标从 `resources/<APP_ICON>` 读：开发取项目根目录，
+打包由 `extraResources` 拷到 `resources/`，主进程只认 `process.resourcesPath` 这一条路径。
+
+`app.setName(APP_NAME)` 在 `whenReady` 之前执行，`userData` 路径随之变成 `%APPDATA%/<APP_NAME>`；
+这是有意为之——品牌改名时数据目录也跟着隔离，已有数据要自行迁移。
+
+启动行为也放在同一份 `.env`：`APP_FEATURE_LOGIN` 决定是否走登录窗，
+`APP_SPLASH_MIN_MS` 控制无需登录时启动页的最短展示时间。
+
+---
+
 ## 窗口体系
 
 ```
-main/window/presets.ts     窗口目录：每种 kind 的外观、modal、singleton、skipTaskbar
-main/window/registry.ts    Map<windowId, entry>，entry 内含 contentsId 与 pending[]
-main/window/manager.ts     唯一能 new BrowserWindow 的地方：open/close/getPayload/pushProps/focus/closeAllWindows
-main/window/lifecycle.ts   异常路径与实测埋点
-main/window/main-window.ts 主窗口自身
+main/window/presets.ts       窗口目录：每种 kind 的外观、modal、singleton、skipTaskbar
+main/window/registry.ts      Map<windowId, entry>，entry 内含 contentsId 与 pending[]
+main/window/manager.ts       业务独立窗口的唯一入口：open/close/getPayload/pushProps/focus/closeAllWindows
+main/window/lifecycle.ts     异常路径与实测埋点
+main/window/main-window.ts   主窗口自身（无边框，标题栏由渲染层绘制）
+main/window/login-window.ts  登录独立窗：400×560、无边框，不进 registry
+main/window/splash-window.ts 启动页：400×460、无边框、跳过任务栏，不进 registry
+main/window/app-flow.ts      启动 / 登录完成 / 退出登录的窗口切换与启动页退场条件
+main/window/chrome.ts        自定义标题栏、窗口状态推送、senderId 反查与导航拦截
+main/window/entry.ts         单入口 hash 路由，主窗/登录窗/启动页/业务窗口共用
+main/window/app-icon.ts      从 .env 的 APP_ICON 解析运行时图标
 ```
 
-新增一种窗口 = 一条 preset + 一条 `/w/:kind` 路由 + 一条 props/result 契约。不建继承树。
+新增一种业务窗口 = 一条 preset + 一条 `/w/:kind` 路由 + 一条 props/result 契约。不建继承树。
+登录窗与启动页不进 registry：registry 的语义是「带参数进、带结果出的业务弹层」，
+它们是一次性的应用入口切换，不属于这个生命周期模型。
 
 **传参：身份与数据分通道**
 
@@ -60,6 +92,9 @@ main/window/main-window.ts 主窗口自身
 **Pinia 不跨窗口共享**（每窗口独立渲染进程 = 独立 store 实例）。
 窗口被定义为"带参数进、带结果出"的短生命周期弹层，不建全局状态同步层。
 
+**主窗口崩溃重建**：先建新主窗、再销毁旧窗。反过来会出现"零窗口"的瞬间，
+`window-all-closed` 会直接把应用退掉。独立窗口崩溃只 settle `crashed`，不重建。
+
 ---
 
 ## IPC
@@ -75,6 +110,11 @@ main/window/main-window.ts 主窗口自身
 - 可预期的业务结果用返回值（取消返回 `null` / `{ok:false}`），真异常一律 throw。
 - 交互型通道（系统对话框）标 `interactive: true`，否则"用户思考了 3 秒"会被记成慢调用告警，噪声会教人忽略告警。
 - 事件订阅必须解绑，`onScopeDispose` 统一处理。
+- 窗口控件（`window:minimize` / `toggle-maximize` / `get-state` / `close-self`）只作用于
+  `senderId` 对应的那个窗口；最大化状态经 `evt:window-state` 回推，渲染层不靠猜。
+- `app:complete-login` 只接受登录窗来源，`app:show-login` 只接受主窗口来源，
+  `app:ui-ready` 只接受主窗口来源——窗口切换与启动页退场都是特权动作，
+  不做「谁调都行」的通用通道（其他窗口也会跑同一份 bootstrap，非主窗通知直接忽略）。
 
 没有代码生成步骤，也没有 ts-rest 类第三方。
 
@@ -82,7 +122,7 @@ main/window/main-window.ts 主窗口自身
 
 ## 弹层
 
-`MyDialog` / `MyDrawer` 同 API 形态，`MyConfirm` 是函数式确认（返回 Promise<boolean>）。
+`my-dialog` / `my-drawer` 同 API 形态，`confirmAction` 是函数式确认（返回 Promise<boolean>）。
 `width`/`size` 只接受具体值，不做 size 枚举档位——要改就直接传值。
 
 样式只有一份：Element Plus 基础样式 + `styles/element-theme.css`（唯一覆盖点）。
@@ -90,11 +130,53 @@ main/window/main-window.ts 主窗口自身
 这样"弹窗头部圆角/内边距/最大高度"一改就全项目生效。
 
 **契约**：业务表单主体不 import 弹层、不感知容器，只声明 props + emit。
-这是"从 dialog 升级到 window 不重写业务"的前提，也是 `UserForm` 能同时被三处复用的原因。
-没有为此抽 `PopupHost` 之类的统一浮层抽象。
+这是"从 dialog 升级到 window 不重写业务"的前提，也是 `user-form` 能同时被
+dialog、drawer 与独立窗口复用的原因。没有为此抽 `PopupHost` 之类的统一浮层抽象。
 
 页面内声明是默认；全局单例（`GlobalHost`）**尚未实现**——模板里目前没有真正需要
 "跨路由存活且不进独立窗口"的浮层，先建就是空壳。等出现该需求时再落，见"范围收缩"。
+
+---
+
+## 界面系统
+
+**方向**：桌面软件，不是网页后台。深色标题栏 + 深色侧栏 + 浅色工作区（暗色主题整体反转），
+13px 基准字号、32px 控件高度、6/8/12px 圆角；不用大 hero、彩色卡片、面包屑式后台头部。
+主窗口、登录窗、启动页与独立窗口共用同一套无边框外壳，系统边框由 `window-controls` 自绘。
+
+**令牌**（`styles/index.css`，`html.dark` 是同语义映射）：
+
+| 角色           | 亮色                  | 暗色                  | 用途              |
+| -------------- | --------------------- | --------------------- | ----------------- |
+| `canvas`       | `#f2f3f5`             | `#13161b`             | 工作区底色        |
+| `surface`      | `#ffffff`             | `#1a1e25`             | 面板 / 输入框     |
+| `border`       | `#e2e5ea`             | `#2a303a`             | 分割线与描边      |
+| `ink` / muted  | `#171a21` / `#7d8797` | `#e9ecf1` / `#8792a2` | 主 / 次文本       |
+| `accent-solid` | `#0f766e`             | `#12857a`             | 主按钮填充        |
+| `accent`       | `#0f766e`             | `#5ed3c4`             | 可交互文字 / 图标 |
+| `sidebar`      | `#1b2027`             | `#0e1115`             | 侧栏              |
+| `titlebar`     | `#14181e`             | `#0b0e12`             | 自定义标题栏      |
+
+字体走系统 UI 栈（Segoe UI / PingFang / Microsoft YaHei）；正文 13px，页面标题 22px，
+控件 12–13px，等宽字体用于版本、编码与路径。Element Plus 的映射与组件覆盖集中在
+`styles/element-theme.css`；暗色变量 `theme-chalk/dark/css-vars.css` 必须先于覆盖文件加载，
+否则 `html.dark` 的 Element 变量会盖掉项目主题。
+
+**组件**：
+
+- `my-dialog` / `my-drawer` 必须 `append-to-body`：`.view` 的入场动画保留 `transform`，
+  否则 `position: fixed` 的遮罩会被限制在内容区；弹层应覆盖整个窗口并在视口居中。
+- `app-titlebar`：拖拽区 + 面包屑 + 主题/账户 + 窗口控件，主窗口专用。
+- `window-brand-bar`：登录窗与启动页共用的品牌顶栏（品牌标 + 名称 + 窗口控件）。
+- `window-shell`：业务独立窗口外壳；标题栏、正文滚动区与底部操作区只有一份。
+- `.auth-window`：登录窗与启动页共用的品牌化背景（环境光渐变 + `--app-login-bg`）。
+- `window-controls`：最小化 / 最大化 / 关闭，只发 `window:*` IPC，不直接碰 Electron。
+- `brand-mark`：由 `APP_NAME` 首字母生成的字母标，品牌名一改就跟着变。
+- `tab-bar` / `side-nav`：自绘标签与深色导航，不再用 Element Tabs/Menu 的默认外观。
+
+**命名**：组件文件、模板标签、`defineOptions.name` 与路由 `name` 全部 kebab-case；
+ESLint 的 `vue/component-definition-name-casing: kebab-case` 强制，
+keep-alive 的 include 直接复用路由名。
 
 ---
 
@@ -109,19 +191,37 @@ main/window/main-window.ts 主窗口自身
 
 `configureHttp({ getToken, onUnauthorized })` 在 `main.ts` 注入，避免 http ↔ store 循环依赖。
 未配置 `RENDERER_VITE_API_BASE_URL` 时 `request()` 抛可读错误，**不虚构后端接口**。
+`userData` 的实际路径由 `APP_NAME` 决定（Windows 为 `%APPDATA%/<APP_NAME>`）。
 
-`bootstrap()` 先 `hydrate()` + `restore()` 再 `mount()`：
-否则首次导航时守卫会在 store 未水合时判定未登录，把已登录用户错误弹回登录页。
+`bootstrap()` 先 `hydrate()` + `restore()`，再 `app.use(router)` + `mount()`：
+router 安装即触发首次导航，提前安装会让守卫在 store 未水合时判定未登录，
+把已登录用户错误弹回登录页——这是登录窗接管后实测踩到的时序坑。
 
 ---
 
 ## 启动流程
 
-不做独立 splash 窗口（理由见 window-vs-dialog 的边界案例 3）。
-主窗口 `show: false` + `ready-to-show` + `backgroundColor`；需要等待的重活走应用内路由 + 骨架屏。
+```
+启动
+ ├─ 需要登录（APP_FEATURE_LOGIN=true 且无 auth.session）→ 登录窗（400×560、无边框）
+ │     └─ 登录成功 → app:complete-login → 建主窗 → ready-to-show 后关登录窗
+ └─ 无需登录 / 已有会话 → 启动页（400×460、无边框、跳过任务栏）
+       ├─ 启动页 ready-to-show 后创建主窗，但主窗保持隐藏、后台加载
+       ├─ 主窗 app:ui-ready + 达到 APP_SPLASH_MIN_MS → 启动页关闭 → 主窗 show
+       └─ 兜底：主窗超过 8s 没有首屏反馈也关闭启动页（APP_SPLASH_MIN_MS 更长时顺延）
 
-登录页保留，`RENDERER_VITE_FEATURE_LOGIN=false` 可关（关掉只是守卫短路，保留比删除便宜）。
-token 存 userData；401 → `clear()` → 守卫弹回 `/login?redirect=`。
+退出登录 → app:show-login → 先建登录窗，再销毁主窗口（避免 window-all-closed 提前退出）
+```
+
+登录窗与启动页是两条**明确的启动路径**，都只做各自的事：
+
+- 登录窗承载真实账号密码交互，完成后关闭并展示主窗口。
+- 启动页只在无需登录时出现，等主窗口挂载完成（`app:ui-ready`）再退场；
+  它由 `APP_SPLASH_MIN_MS` 控制最短展示时间，避免一闪而过。
+- 启动页不是「遮白闪」的万能方案：白闪仍靠主窗口 `show: false` + `ready-to-show` + `backgroundColor` 解决。
+
+`APP_FEATURE_LOGIN=false` 时跳过登录窗与鉴权守卫，直接走启动页 → 主窗口。
+token 存 userData；401 → `clear()` → 守卫请求 `app:show-login`（浏览器预览退回 `/login`）。
 
 ---
 
@@ -129,7 +229,7 @@ token 存 userData；401 → `clear()` → 守卫弹回 `/login?redirect=`。
 
 `contextIsolation: true`、`nodeIntegration: false`、`sandbox: false`
 （官方 electron-vite 模板即为 false：沙箱化的 preload 无法加载打包后的模块）。
-`setWindowOpenHandler` 一律 deny（应用内不弹浏览器窗口，新窗口走 manager），
+`setWindowOpenHandler` 在所有窗口上统一 deny（应用内不弹浏览器窗口，新窗口走 manager），
 `will-navigate` 拦截跳出文档，外链仅 `http(s)` 交系统浏览器，
 生产 `index.html` 带 CSP，preload 在 `!process.contextIsolated` 时**拒绝挂载**而不是退化成直接挂 window 全局。
 
@@ -156,22 +256,29 @@ token 存 userData；401 → `clear()` → 守卫弹回 `/login?redirect=`。
 
 ## 实测记录（本模板的结论都从这里来）
 
-| 事项                                   | 结果                                                                                                                                                                                                                                                                                               |
-| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| TypeScript 7.0.2 + vue-tsc 3.3.14      | **不兼容**：`typecheck:web` 崩在 `ERR_PACKAGE_PATH_NOT_EXPORTED`（vue-tsc 解析 TS7 已移除的子路径）。已按授权回退 TS 6.0.3；router 5.4 / pinia 4.1 保留，至今无故障                                                                                                                                |
-| 脚手架自带的 `baseUrl`                 | TS6 下是硬错误 TS5101，已移除，`paths` 改相对路径                                                                                                                                                                                                                                                  |
-| `electron-vite dev` 是否监听主进程     | **默认不监听**，`-w` 才监听；实测两轮 `rebuilt successfully` → `restarting electron app`                                                                                                                                                                                                           |
-| `@swc/core`（electron-vite 6 的 peer） | 实际未安装，dev/build 全通 → 该 peer 是条件路径，无需 hoist 兜底                                                                                                                                                                                                                                   |
-| `externalizeDepsPlugin`                | v6 官方模板的 `main:{}` / `preload:{}` 为空配置即可，不再需要显式插件                                                                                                                                                                                                                              |
-| `BrowserWindow` 的 `title`             | 会被页面 `<title>` 覆盖（读 Win32 `MainWindowTitle` 确认）→ 标题与环境标记由渲染进程守卫负责                                                                                                                                                                                                       |
-| 多实例共用 `userData`                  | Chromium 报 `Unable to move the cache: 拒绝访问 (0x5)` → 单实例锁在 dev 下刻意跳过                                                                                                                                                                                                                 |
-| Element Plus 引入方式                  | 全量引入。unplugin 按需的收益依赖"不写 import"，而组件里写显式 import 更稳，于是只剩 rolldown 兼容风险与两个生成文件 → 负收益                                                                                                                                                                      |
-| `ImportMetaEnv` 增强                   | 与 `/// <reference types="vite/client" />` 同文件会让 CSS 副作用导入和 `import.meta.env` 一起失效；已拆到 `types/ambient.d.ts`                                                                                                                                                                     |
-| pnpm 10 构建脚本                       | 默认屏蔽 `electron-winstaller`，已登记进 `pnpm.onlyBuiltDependencies`                                                                                                                                                                                                                              |
-| 越界引用                               | 双向探针均报 `TS2307`；6 个故意写错的 IPC 探针全部编译期报错                                                                                                                                                                                                                                       |
-| IPC 运行时                             | CDP 在渲染层实测 `window.api` 暴露 4 个命名空间；`ui.theme` 写入后读回并落盘；日志按天落盘且 main/renderer 汇入同一文件                                                                                                                                                                            |
-| 窗口往返                               | `open('user-form', props)` → 子窗口 `getPayload()` 拿到 DTO → `close(result)` → 调用方 `await` 得 `{ok:true,data}`；子窗口 URL 为 `#/w/user-form?windowId=…`，标题正确                                                                                                                             |
-| 鉴权                                   | CDP 真实点击登录按钮 → 落地 `#/home`、头部显示"系统管理员"、侧栏 6 项                                                                                                                                                                                                                              |
-| 窗口首屏延迟 / 内存                    | 174–213ms / 约 150MB working set（高估，见 window-vs-dialog）                                                                                                                                                                                                                                      |
-| **中文路径是不是打包障碍**             | **不是**。同代码在 `D:\Projects\后台模板\electron-template` 与纯 ASCII 的 `D:\t\et` 推进到完全相同阶段、卡在同一处（`Timeout awaiting 'request' for 600000ms`，下载 winCodeSign/nsis 工具链）。原计划里"出包必须去 ASCII 路径"的假设**被证伪**，README 排障表已按实测改写                          |
-| **electron-builder 出安装包**          | **未通过**，阻塞在网络下载工具链 + 输出目录被外部句柄锁住（无 electron 进程时 `default_app.asar` 仍 busy、跨盘 `mv` Permission denied）。属于本机环境问题，不是模板配置问题：`electron.vite.config.ts` 的 `base:'./'` 与 hash 路由已就位，`electron-builder.yml` 的 nsis/portable 配置未经真机验证 |
+| 事项                                   | 结果                                                                                                                                                                                                                                                                                              |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| TypeScript 7.0.2 + vue-tsc 3.3.14      | **不兼容**：`typecheck:web` 崩在 `ERR_PACKAGE_PATH_NOT_EXPORTED`（vue-tsc 解析 TS7 已移除的子路径）。已按授权回退 TS 6.0.3；router 5.4 / pinia 4.1 保留，至今无故障                                                                                                                               |
+| 脚手架自带的 `baseUrl`                 | TS6 下是硬错误 TS5101，已移除，`paths` 改相对路径                                                                                                                                                                                                                                                 |
+| `electron-vite dev` 是否监听主进程     | **默认不监听**，`-w` 才监听；实测两轮 `rebuilt successfully` → `restarting electron app`                                                                                                                                                                                                          |
+| `@swc/core`（electron-vite 6 的 peer） | 实际未安装，dev/build 全通 → 该 peer 是条件路径，无需 hoist 兜底                                                                                                                                                                                                                                  |
+| `externalizeDepsPlugin`                | v6 官方模板的 `main:{}` / `preload:{}` 为空配置即可，不再需要显式插件                                                                                                                                                                                                                             |
+| `BrowserWindow` 的 `title`             | 会被页面 `<title>` 覆盖（读 Win32 `MainWindowTitle` 确认）→ 标题与环境标记由渲染进程守卫负责                                                                                                                                                                                                      |
+| 多实例共用 `userData`                  | Chromium 报 `Unable to move the cache: 拒绝访问 (0x5)` → 单实例锁在 dev 下刻意跳过                                                                                                                                                                                                                |
+| Element Plus 引入方式                  | 全量引入。unplugin 按需的收益依赖"不写 import"，而组件里写显式 import 更稳，于是只剩 rolldown 兼容风险与两个生成文件 → 负收益                                                                                                                                                                     |
+| `ImportMetaEnv` 增强                   | 与 `/// <reference types="vite/client" />` 同文件会让 CSS 副作用导入和 `import.meta.env` 一起失效；已拆到 `types/ambient.d.ts`                                                                                                                                                                    |
+| pnpm 10 构建脚本                       | 默认屏蔽 `electron-winstaller`，已登记进 `pnpm.onlyBuiltDependencies`                                                                                                                                                                                                                             |
+| 越界引用                               | 双向探针均报 `TS2307`；6 个故意写错的 IPC 探针全部编译期报错                                                                                                                                                                                                                                      |
+| IPC 运行时                             | CDP 在渲染层实测 `window.api` 暴露 5 个命名空间（app / store / dialog / log / window）；`ui.theme` 写入后读回并落盘；日志按天落盘且 main/renderer 汇入同一文件                                                                                                                                    |
+| 窗口往返                               | `open('user-form', props)` → 子窗口 `getPayload()` 拿到 DTO → `close(result)` → 调用方 `await` 得 `{ok:true,data}`；子窗口 URL 为 `#/w/user-form?windowId=…`，标题正确                                                                                                                            |
+| 主窗口崩溃重建                         | CDP `Page.crash` 后主进程记到 `render-process-gone`，新主窗创建并显示、应用未退出；先建新窗再销毁旧窗是关键，反序会触发 `window-all-closed` 直接退应用                                                                                                                                            |
+| 系统文件对话框                         | 改为异步 `showOpenDialog` / `showSaveDialog`，父窗用 `senderId` 反查（不是 `BrowserWindow.fromId`）；ESC 取消返回 `null`，等待期间主进程事件循环不被阻塞                                                                                                                                          |
+| 鉴权 / 登录窗切换                      | CDP 真实点击登录按钮 → 登录窗关闭、主窗展示 `#/home`、标题栏显示"系统管理员"；退出登录 → 先建登录窗再销毁主窗，未误触 `window-all-closed`                                                                                                                                                         |
+| 启动页                                 | 400×460 启动页创建 → 主窗后台加载（实测 `visible:false`）→ 达到 `APP_SPLASH_MIN_MS` 后启动页退场、主窗 show；任意时刻只有一个窗口可见；`app:ui-ready` 只认主窗口来源                                                                                                                              |
+| 主窗口首屏导航时序                     | router 在 `hydrate()/restore()` 前安装会先跑守卫，把有会话的用户误判未登录并切回登录窗；改为 restore 完成后再 `app.use(router)`                                                                                                                                                                   |
+| 自定义窗口控件                         | 最大化/还原后 `evt:window-state` 回推正确，图标切换；子窗口点标题栏 X 返回 `{ok:false, reason:'cancelled'}` 而不抛异常                                                                                                                                                                            |
+| 桌面主题覆盖顺序                       | Element 暗色变量必须先于 `element-theme.css`；反过来 `html.dark` 会盖掉项目令牌。亮/暗两套主题、文字按钮、plain 按钮均已实测                                                                                                                                                                      |
+| kebab-case 强制                        | 文件、模板标签、`defineOptions.name` 与路由 name 统一后，ESLint `vue/component-definition-name-casing` 零告警；标签页 keep-alive 正常                                                                                                                                                             |
+| 窗口首屏延迟 / 内存                    | 174–213ms / 约 150MB working set（高估，见 window-vs-dialog）                                                                                                                                                                                                                                     |
+| **中文路径是不是打包障碍**             | **不是**。同代码在 `D:\Projects\后台模板\electron-template` 与纯 ASCII 的 `D:\t\et` 推进到完全相同阶段、卡在同一处（`Timeout awaiting 'request' for 600000ms`，下载 winCodeSign/nsis 工具链）。原计划里"出包必须去 ASCII 路径"的假设**被证伪**，README 排障表已按实测改写                         |
+| **electron-builder 出安装包**          | **未通过**，阻塞在网络下载工具链 + 输出目录被外部句柄锁住（无 electron 进程时 `default_app.asar` 仍 busy、跨盘 `mv` Permission denied）。属于本机环境问题，不是模板配置问题：`electron.vite.config.ts` 的 `base:'./'` 与 hash 路由已就位，`electron-builder.js` 的 nsis/portable 配置未经真机验证 |

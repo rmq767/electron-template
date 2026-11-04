@@ -4,8 +4,8 @@ import { getMainWindow } from '@main/window/manager'
 
 /**
  * 主进程异常与渲染进程崩溃。
- * 崩溃恢复的粒度是「哪个窗口崩就重建哪个窗口」，不做全局重启；
- * 独立窗口崩掉时由 registry 的 settle 给调用方返回 crashed，不在这里重建。
+ * 主窗口崩溃时重建主窗口；独立窗口崩溃由 registry 的 settle 给调用方返回 crashed，
+ * 不在这里重建，也不做全局重启。
  */
 let dialogShown = false
 

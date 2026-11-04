@@ -9,7 +9,6 @@ interface ImportMetaEnv {
   readonly MODE: string
   readonly BASE_URL: string
   readonly RENDERER_VITE_API_BASE_URL?: string
-  readonly RENDERER_VITE_FEATURE_LOGIN?: string
 }
 
 interface ImportMeta {

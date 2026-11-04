@@ -45,15 +45,4 @@ export function attachWindowLifecycle(
   win.webContents.on('unresponsive', () => {
     logger.warn(`窗口 ${windowId} 无响应`)
   })
-
-  // 窗口页不允许跳出自身文档（外链走 shell.openExternal）
-  win.webContents.on('will-navigate', (event, url) => {
-    const own = win.webContents.getURL().split('#')[0]
-    if (!url.startsWith(own)) {
-      event.preventDefault()
-      logger.warn(`拦截窗口 ${windowId} 的跳转`, { url })
-    }
-  })
-
-  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
 }

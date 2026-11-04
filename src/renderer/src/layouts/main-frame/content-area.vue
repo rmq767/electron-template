@@ -19,8 +19,8 @@ const cached = computed(() => tabs.cachedNames)
 <style scoped>
 .content-area {
   flex: 1;
-  padding: 12px;
+  padding: 20px 24px 28px;
   overflow: auto;
-  background: var(--app-content-bg);
+  background: var(--app-canvas);
 }
 </style>

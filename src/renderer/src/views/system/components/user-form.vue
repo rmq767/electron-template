@@ -3,9 +3,11 @@ import { computed, reactive, ref, watch } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import type { UserDTO } from '@shared/types/user'
 
+defineOptions({ name: 'user-form' })
+
 /**
  * 表单主体。刻意不 import 任何弹层、也不知道自己被装在哪里：
- * 只声明入参 props 和出参 emit，外层容器（MyDialog / MyDrawer / 独立窗口）负责装配。
+ * 只声明入参 props 和出参 emit，外层容器（my-dialog / my-drawer / 独立窗口）负责装配。
  * 这是「同一个表单从 dialog 平滑升级成 window」的前提。
  * 类型放 @shared/types/user，因为 <script setup> 不允许 export，且主进程侧也要用。
  */

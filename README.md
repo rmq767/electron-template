@@ -1,7 +1,10 @@
-# Electron Template
+# Electron Desktop Template
 
 Electron + Vue 3 + Element Plus + Vite + Vue Router + Pinia + TypeScript 的桌面端快速开发模板。
 目标不是"演示能跑"，而是**拉下来就能写业务、并且知道每个决定为什么这么做**。
+
+默认外观是桌面软件外壳：无系统边框的自定义标题栏、深色侧栏、编辑器式标签栏与紧凑的数据面板，
+**不是网页后台模板**。品牌名、副标题、图标与 App ID 全部由 [.env](.env) 驱动（默认 `Aster`）。
 
 ---
 
@@ -15,8 +18,10 @@ pnpm dev         # 起窗 + 三端热更（含主进程，见下文 -w）
 开发环境要求：Node `^20.19 || >=22.12`、pnpm 9/10、git。
 装依赖前先跑一次 `pnpm check:env`，它会检查缓存目录是否落在 ASCII 路径上。
 
-登录：模板内置 mock 账号 **admin / 123456**（不连任何后端）。
-不需要登录页就把 `.env` 里的 `RENDERER_VITE_FEATURE_LOGIN` 改成 `false`，守卫会短路。
+启动分两条路径：**需要登录**时先出现独立登录窗（400×560、无系统边框），登录完成由主进程关闭登录窗并展示主窗口；
+**无需登录或已有会话**时先出现启动页（400×460），主窗口在后台加载但保持隐藏；启动页等主窗口渲染完成（`app:ui-ready`）并达到最短展示时间后关闭，这时主窗口才会出现。
+主窗口退出登录会切回登录窗。模板内置 mock 账号 **admin / 123456**（不连任何后端）。
+不需要登录就把 `.env` 里的 `APP_FEATURE_LOGIN` 改成 `false`，登录窗与鉴权守卫一起短路，改走启动页路径。
 
 ---
 
@@ -95,14 +100,40 @@ src/shared    共用层    纯类型 + 常量 + 无副作用函数，不得 impo
 
 前缀由 electron-vite 决定，按进程隔离：`MAIN_VITE_*` / `PRELOAD_VITE_*` / `RENDERER_VITE_*`。
 
-| 变量                          | 说明                                                                   |
-| ----------------------------- | ---------------------------------------------------------------------- |
-| `RENDERER_VITE_API_BASE_URL`  | 后端基址。**留空 = 不连后端**，`api/http` 会给出可读报错而不是假装能跑 |
-| `RENDERER_VITE_FEATURE_LOGIN` | `false` 关掉登录页与鉴权守卫                                           |
-| `MAIN_VITE_LOG_LEVEL`         | 主进程日志级别                                                         |
+| 变量                         | 说明                                                                   |
+| ---------------------------- | ---------------------------------------------------------------------- |
+| `APP_NAME`                   | 应用名：窗口标题、登录页、侧栏、菜单与安装包 `productName`             |
+| `APP_TAGLINE`                | 登录页副标题（可为空）                                                 |
+| `APP_ID`                     | Windows AppUserModelId，同时作为安装包 `appId`                         |
+| `APP_ICON`                   | `resources/` 下的运行时窗口图标文件名，打包时会一起拷进 resources      |
+| `APP_FEATURE_LOGIN`          | `false` = 跳过登录独立窗口与鉴权守卫                                   |
+| `APP_SPLASH_MIN_MS`          | 无需登录时启动页的最短展示时间（毫秒），默认 900                       |
+| `RENDERER_VITE_API_BASE_URL` | 后端基址。**留空 = 不连后端**，`api/http` 会给出可读报错而不是假装能跑 |
+
+`APP_*` 不是 Vite 前缀变量：`electron.vite.config.ts` 用 `loadEnv` 读取后通过 `define` 注入主进程、
+preload 与渲染层，业务代码只从 `src/shared/constants/app.ts` 读。`electron-builder.js` 也读同一份
+`.env`，因此安装包名称、App ID 与运行时不会脱节。
+
+图标口径：Windows 安装包与运行时窗口都读 `resources/<APP_ICON>`；macOS 安装包图标仍是
+`build/icon.icns`，换品牌时需要自己替换这份 icns。
 
 业务代码不直接碰 `import.meta.env`，统一从 `src/renderer/src/env.ts` 读。
 一句话安全观：**`RENDERER_VITE_*` 会被打进 bundle，前端 bundle 不是秘密**；密钥只放 `MAIN_VITE_*`。
+
+---
+
+## 界面系统
+
+- **设计令牌**：颜色、字号、间距、圆角、阴影全部在 `src/renderer/src/styles/index.css`，
+  `html.dark` 是同一套语义变量的暗色映射。
+- **Element Plus 覆盖**：只在 `src/renderer/src/styles/element-theme.css` 一处；
+  组件内不再写 `:deep(.el-dialog__header)` 这类局部覆盖。
+- **命名**：组件文件、模板标签、`defineOptions.name` 与路由 `name` 一律 kebab-case，
+  ESLint 的 `vue/component-definition-name-casing` 已强制。
+- **窗口外观**：主窗口、登录窗、启动页与独立窗口都使用无系统边框 + 自定义标题栏；
+  最小化 / 最大化 / 关闭与窗口状态通过 `window:*` IPC 触达主进程。
+- **登录 / 启动**：登录窗与启动页共用 `window-brand-bar` 与 `.auth-window` 品牌背景；
+  启动页只在无需登录的路径出现，等待主窗口 `app:ui-ready` 后退场。
 
 > 踩过的坑：`ImportMetaEnv` 的类型增强**不能**和 `/// <reference types="vite/client" />` 写在同一个文件里，
 > 否则 CSS 副作用导入与 `import.meta.env` 会一起失效。本项目把增强单独放在
@@ -118,8 +149,11 @@ src/shared    共用层    纯类型 + 常量 + 无副作用函数，不得 impo
 | 日志                 | `userData/logs/app-YYYY-MM-DD.log`     | 按天分片，写满 10MB 切 `.1/.2`，保留 14 天                                               |
 | 诊断包               | `userData/diagnostics/*.json`          | 含环境信息与日志尾部副本，不引 zip 依赖                                                  |
 
+`userData` 的实际目录由 `APP_NAME` 决定（Windows 下是 `%APPDATA%/<APP_NAME>`）；改品牌名会切换数据目录，
+已有用户数据需要自行迁移。
+
 菜单「帮助 → 导出诊断包」和 `window.api.app.exportDiagnostics()` 共用同一份实现。
-崩溃恢复的粒度是**哪个窗口崩就重建哪个窗口**，不做全局重启；不做云端上报。
+崩溃恢复：主窗口崩溃由主进程重建；独立窗口崩溃只影响自己，调用方收到 `crashed`，不做全局重启，也不做云端上报。
 
 ---
 
@@ -130,7 +164,7 @@ src/shared    共用层    纯类型 + 常量 + 无副作用函数，不得 impo
 - **代码签名没配**：没有证书时任何签名配置都会让构建失败。正式分发需要 OV/EV 证书，未签名 exe 会触发 SmartScreen。
 - **自动更新没集成**：它依赖真实分发基建（内网 HTTP 或制品库 + 版本发布流程），模板里无法验收。接入清单：
   1. `pnpm add electron-updater`
-  2. `electron-builder.yml` 加 `publish: { provider: 'generic', url: '你的内网地址' }`
+  2. `electron-builder.js` 加 `publish: { provider: 'generic', url: '你的内网地址' }`
   3. 主进程 `app.whenReady()` 后 `autoUpdater.checkForUpdatesAndNotify()`
   4. 定好 semver 策略，并验证与 Electron 45 的兼容性
 
@@ -171,7 +205,7 @@ src/shared    共用层    纯类型 + 常量 + 无副作用函数，不得 impo
 | Element Plus  | 2.14.7    | 全量引入；主题覆盖只在 `styles/element-theme.css` 一处                                                                                            |
 | TypeScript    | **6.0.3** | 官方脚手架与 vue-tsc 3.3.14 的当前稳定线。7.0.2 实测与 `vue-tsc` 硬冲突（`ERR_PACKAGE_PATH_NOT_EXPORTED`），已在回退阶梯里，等 vue-tsc 适配后可升 |
 
-架构与契约细节见 [DESIGN.md](DESIGN.md)。
+编码与协作规则见 [AGENTS.md](AGENTS.md)；架构与契约细节见 [DESIGN.md](DESIGN.md)。
 
 ## 还没做的（有意为之，不是遗漏）
 

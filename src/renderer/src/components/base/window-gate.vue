@@ -1,4 +1,6 @@
 <script setup lang="ts">
+defineOptions({ name: 'window-gate' })
+
 withDefaults(defineProps<{ ready: boolean; error?: string; rows?: number }>(), {
   error: '',
   rows: 6

@@ -2,14 +2,14 @@ import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import type { RouteLocationNormalized } from 'vue-router'
 
-export interface TabItem {
+interface TabItem {
   path: string
   name: string
   title: string
 }
 
 /** 概览页固定在第一个，不可关闭。 */
-const HOME: TabItem = { path: '/home', name: 'Home', title: '概览' }
+const HOME: TabItem = { path: '/home', name: 'home', title: '概览' }
 
 export const useTabsStore = defineStore('tabs', () => {
   const tabs = ref<TabItem[]>([{ ...HOME }])
@@ -24,10 +24,11 @@ export const useTabsStore = defineStore('tabs', () => {
 
   function add(route: RouteLocationNormalized): void {
     const { path, name, meta } = route
+    // 固定页也要点亮激活态，否则从其他页点回概览时标签高亮会留在旧标签
+    activePath.value = path
     if (!name || !meta.title || path === '/home') return
     const exists = tabs.value.some((tab) => tab.path === path)
     if (!exists) tabs.value.push({ path, name: String(name), title: meta.title })
-    activePath.value = path
   }
 
   /** 返回关闭后应跳转的路径；关闭的是非激活页时返回 null 表示不用跳。 */
@@ -42,15 +43,10 @@ export const useTabsStore = defineStore('tabs', () => {
     return next.path
   }
 
-  function closeOthers(path: string): void {
-    tabs.value = tabs.value.filter((tab) => isFixed(tab.path) || tab.path === path)
-    activePath.value = path
-  }
-
   function reset(): void {
     tabs.value = [{ ...HOME }]
     activePath.value = HOME.path
   }
 
-  return { tabs, activePath, cachedNames, add, remove, closeOthers, reset, isFixed }
+  return { tabs, activePath, cachedNames, add, remove, reset, isFixed }
 })

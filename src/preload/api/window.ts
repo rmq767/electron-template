@@ -2,11 +2,13 @@ import { IPC } from '@shared/ipc/channels'
 import type {
   OpenOutcome,
   OpenWindowOptions,
+  WindowChromeState,
   WindowKind,
   WindowPayload,
   WindowPropsMap,
   WindowResultMap,
-  WindowSelf
+  WindowSelf,
+  WindowSurface
 } from '@shared/ipc/window-spec'
 import { invoke, on } from '../ipc'
 
@@ -18,7 +20,7 @@ function readArg(name: string): string | undefined {
 /** 身份从 argv 同步可读，不需要先跑一次 IPC。 */
 const self: WindowSelf | null = (() => {
   const windowId = readArg('window-id')
-  const kind = readArg('window-kind') as WindowKind | undefined
+  const kind = readArg('window-kind') as WindowSurface | undefined
   return windowId && kind ? { windowId, kind } : null
 })()
 
@@ -41,5 +43,16 @@ export const windowApi = {
   pushProps: <K extends WindowKind>(callback: (props: WindowPropsMap[K]) => void): (() => void) =>
     on(IPC.Evt.WindowProps, (payload) => callback(payload.props as WindowPropsMap[K])),
 
-  focus: (windowId: string): Promise<void> => invoke(IPC.Window.Focus, { windowId })
+  focus: (windowId: string): Promise<void> => invoke(IPC.Window.Focus, { windowId }),
+
+  minimize: (): Promise<void> => invoke(IPC.Window.Minimize),
+
+  toggleMaximize: (): Promise<boolean> => invoke(IPC.Window.ToggleMaximize),
+
+  getState: (): Promise<WindowChromeState> => invoke(IPC.Window.GetState),
+
+  closeSelf: (): Promise<void> => invoke(IPC.Window.CloseSelf),
+
+  onState: (callback: (state: WindowChromeState) => void): (() => void) =>
+    on(IPC.Evt.WindowState, callback)
 }

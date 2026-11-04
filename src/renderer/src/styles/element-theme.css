@@ -3,61 +3,363 @@
  * 组件内不允许再写 :deep(.el-dialog__header) 这类局部覆盖——都进这个文件，
  * 这样「弹窗头部/宽度/圆角」一改就全项目生效，不会各页各一套。
  *
- * 采用 CSS 变量覆盖（Element Plus 2.x 官方方式），不引 sass，也不做 size 枚举档位；
- * 要改具体数值就直接传对应变量或组件 prop。
+ * 桌面风格目标：紧凑高度、小圆角、低饱和边框、系统字体；
+ * 不用网页后台常见的大圆角、大间距、彩色卡片。
  */
 
-:root {
-  --el-color-primary: #2f6fed;
-  --el-border-radius-base: 4px;
+:root,
+html.dark {
+  --el-font-family: var(--app-font-sans);
+  --el-font-size-base: 13px;
+  --el-font-size-small: 12px;
+  --el-font-size-extra-small: 11px;
+
+  --el-text-color-primary: var(--app-ink);
+  --el-text-color-regular: var(--app-ink-soft);
+  --el-text-color-secondary: var(--app-muted);
+  --el-text-color-placeholder: var(--app-muted);
+  --el-text-color-disabled: var(--app-muted);
+
+  --el-border-color: var(--app-border-strong);
+  --el-border-color-light: var(--app-border);
+  --el-border-color-lighter: var(--app-border);
+  --el-border-color-extra-light: var(--app-border);
+  --el-border-color-dark: var(--app-border-strong);
+  --el-border-color-darker: var(--app-border-strong);
+
+  --el-fill-color: var(--app-surface-muted);
+  --el-fill-color-light: var(--app-surface-muted);
+  --el-fill-color-lighter: var(--app-surface-muted);
+  --el-fill-color-extra-light: var(--app-surface-muted);
+  --el-fill-color-dark: var(--app-surface-hover);
+  --el-fill-color-darker: var(--app-surface-hover);
+  --el-fill-color-blank: var(--app-surface);
+
+  --el-bg-color: var(--app-surface);
+  --el-bg-color-page: var(--app-canvas);
+  --el-bg-color-overlay: var(--app-surface);
+
+  --el-color-success: var(--app-success);
+  --el-color-warning: var(--app-warning);
+  --el-color-danger: var(--app-danger);
+  --el-color-error: var(--app-danger);
+  --el-color-info: var(--app-muted);
+
+  --el-border-radius-base: 6px;
+  --el-border-radius-small: 5px;
+  --el-border-radius-round: 999px;
+  --el-box-shadow-light: var(--app-shadow-md);
+  --el-box-shadow: var(--app-shadow-md);
+  --el-box-shadow-dark: var(--app-shadow-lg);
+
+  --el-disabled-bg-color: var(--app-surface-muted);
+  --el-disabled-text-color: var(--app-muted);
+  --el-disabled-border-color: var(--app-border);
+  --el-mask-color: rgba(8, 12, 18, 0.42);
+  --el-mask-color-extra-light: rgba(8, 12, 18, 0.18);
 }
 
-/* ---- 弹层骨架：MyDialog 与 MyDrawer 共用这一份 ---- */
+:root {
+  --el-color-primary: var(--app-accent-solid);
+  --el-color-primary-light-3: color-mix(in srgb, var(--app-accent-solid) 76%, white);
+  --el-color-primary-light-5: color-mix(in srgb, var(--app-accent-solid) 52%, white);
+  --el-color-primary-light-7: color-mix(in srgb, var(--app-accent-solid) 32%, white);
+  --el-color-primary-light-8: color-mix(in srgb, var(--app-accent-solid) 20%, white);
+  --el-color-primary-light-9: var(--app-accent-soft);
+  --el-color-primary-dark-2: color-mix(in srgb, var(--app-accent-solid) 82%, black);
+}
+
+html.dark {
+  --el-color-primary: var(--app-accent-solid);
+  --el-color-primary-light-3: color-mix(in srgb, var(--app-accent-solid) 76%, var(--app-canvas));
+  --el-color-primary-light-5: color-mix(in srgb, var(--app-accent-solid) 52%, var(--app-canvas));
+  --el-color-primary-light-7: color-mix(in srgb, var(--app-accent-solid) 32%, var(--app-canvas));
+  --el-color-primary-light-8: color-mix(in srgb, var(--app-accent-solid) 20%, var(--app-canvas));
+  --el-color-primary-light-9: var(--app-accent-soft);
+  --el-color-primary-dark-2: color-mix(in srgb, var(--app-accent-solid) 82%, black);
+}
+
+/* ---- 按钮：桌面软件高度，hover 加深而不是变淡 ---- */
+.el-button {
+  height: 32px;
+  padding: 0 13px;
+  border-radius: var(--app-radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.el-button--small {
+  height: 26px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.el-button--large {
+  height: 38px;
+  padding: 0 18px;
+  font-size: 13px;
+}
+
+.el-button.is-text {
+  padding: 0 8px;
+}
+
+/* 只作用于实心按钮：is-text / is-link 必须保持透明，否则表格里的文字按钮会变成色块 */
+.el-button--primary:not(.is-disabled):not(.is-text):not(.is-link):not(.is-plain) {
+  background-color: var(--app-accent-solid);
+  border-color: var(--app-accent-solid);
+}
+
+.el-button--primary:not(.is-disabled):not(.is-text):not(.is-link):not(.is-plain):hover,
+.el-button--primary:not(.is-disabled):not(.is-text):not(.is-link):not(.is-plain):focus-visible {
+  background-color: color-mix(in srgb, var(--app-accent-solid) 86%, black);
+  border-color: color-mix(in srgb, var(--app-accent-solid) 86%, black);
+}
+
+.el-button--primary:not(.is-disabled):not(.is-text):not(.is-link):not(.is-plain):active {
+  background-color: color-mix(in srgb, var(--app-accent-solid) 78%, black);
+  border-color: color-mix(in srgb, var(--app-accent-solid) 78%, black);
+}
+
+.el-button--default:not(.is-disabled):not(.is-text):not(.is-link):not(.is-plain) {
+  background: var(--app-surface);
+  border-color: var(--app-border-strong);
+  color: var(--app-ink-soft);
+}
+
+.el-button--default:not(.is-disabled):not(.is-text):not(.is-link):not(.is-plain):hover {
+  background: var(--app-surface-hover);
+  border-color: var(--app-border-strong);
+  color: var(--app-ink);
+}
+
+.el-button--danger:not(.is-disabled):not(.is-text):not(.is-link):not(.is-plain) {
+  background-color: var(--app-danger);
+  border-color: var(--app-danger);
+}
+
+.el-button--danger:not(.is-disabled):not(.is-text):not(.is-link):not(.is-plain):hover {
+  background-color: color-mix(in srgb, var(--app-danger) 86%, black);
+  border-color: color-mix(in srgb, var(--app-danger) 86%, black);
+}
+
+.el-button.is-link {
+  height: auto;
+  padding: 0;
+  color: var(--app-accent);
+}
+
+/* ---- 输入类控件 ---- */
+.el-input__wrapper,
+.el-textarea__inner,
+.el-select__wrapper {
+  background-color: var(--app-surface);
+  border-radius: var(--app-radius-sm);
+  box-shadow: 0 0 0 1px var(--app-border-strong) inset;
+  transition:
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.el-input__wrapper {
+  min-height: 32px;
+  padding: 1px 10px;
+}
+
+.el-textarea__inner {
+  min-height: 80px;
+  padding: 8px 10px;
+  line-height: 1.6;
+}
+
+.el-select__wrapper {
+  min-height: 32px;
+  padding: 2px 10px;
+}
+
+.el-input__wrapper:hover,
+.el-textarea__inner:hover,
+.el-select__wrapper:hover {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--app-border-strong) 70%, var(--app-muted)) inset;
+}
+
+.el-input__wrapper.is-focus,
+.el-select__wrapper.is-focused,
+.el-textarea__inner:focus {
+  box-shadow:
+    0 0 0 1px var(--app-accent) inset,
+    0 0 0 3px var(--app-accent-soft);
+}
+
+.el-input__inner {
+  height: 30px;
+  font-size: 13px;
+}
+
+.el-input--large .el-input__wrapper {
+  min-height: 40px;
+  padding: 1px 12px;
+}
+
+.el-input--large .el-input__inner {
+  height: 38px;
+  font-size: 14px;
+}
+
+.el-input__inner::placeholder,
+.el-textarea__inner::placeholder {
+  color: var(--app-muted);
+}
+
+/* ---- 表单 ---- */
+.el-form-item {
+  margin-bottom: 16px;
+}
+
+.el-form-item__label {
+  color: var(--app-ink-soft);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+/* ---- 表格：紧凑、无外框，靠表头底色与行分隔表达层级 ---- */
+.el-table {
+  --el-table-border-color: var(--app-border);
+  --el-table-header-bg-color: var(--app-surface-muted);
+  --el-table-header-text-color: var(--app-muted);
+  --el-table-row-hover-bg-color: var(--app-surface-hover);
+  --el-table-current-row-bg-color: var(--app-accent-soft);
+  --el-table-bg-color: transparent;
+  --el-table-tr-bg-color: transparent;
+  --el-table-expanded-cell-bg-color: transparent;
+  font-size: 13px;
+}
+
+.el-table th.el-table__cell {
+  height: 38px;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.el-table td.el-table__cell {
+  padding: 11px 0;
+}
+
+.el-table .cell {
+  padding: 0 14px;
+  line-height: 1.5;
+}
+
+.el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell {
+  background: var(--app-surface-muted);
+}
+
+.el-table__inner-wrapper::before {
+  background-color: var(--app-border);
+}
+
+/* ---- 标签 ---- */
+.el-tag {
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* ---- 弹层：my-dialog / my-drawer 共用这一份 ---- */
+.el-overlay {
+  backdrop-filter: blur(2px);
+}
+
 .el-dialog {
   display: flex;
   flex-direction: column;
   max-height: 86vh;
-  border-radius: 6px;
+  /* 覆盖 Element 默认的 15vh 上边距，交给 overlay 的 flex 真正居中 */
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  box-shadow: var(--app-shadow-lg);
 }
 
 .el-dialog__header {
   margin-right: 0;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  padding: 15px 20px;
+  border-bottom: 1px solid var(--app-border);
 }
 
 .el-dialog__title {
-  font-size: 15px;
+  color: var(--app-ink);
+  font-size: 14px;
   font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.el-dialog__headerbtn {
+  top: 8px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--app-radius-sm);
+}
+
+.el-dialog__headerbtn:hover {
+  background: var(--app-surface-hover);
 }
 
 .el-dialog__body {
   flex: 1;
-  padding: 16px;
+  padding: 20px;
   overflow: auto;
 }
 
 .el-dialog__footer {
-  padding: 12px 16px;
-  border-top: 1px solid var(--el-border-color-lighter);
+  padding: 13px 20px;
+  border-top: 1px solid var(--app-border);
   text-align: right;
+}
+
+.el-drawer {
+  background: var(--app-surface);
 }
 
 .el-drawer__header {
   margin-bottom: 0;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  padding: 15px 20px;
+  color: var(--app-ink);
+  border-bottom: 1px solid var(--app-border);
+}
+
+.el-drawer__title {
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .el-drawer__body {
-  padding: 16px;
+  padding: 20px;
   overflow: auto;
 }
 
 .el-drawer__footer {
-  padding: 12px 16px;
-  border-top: 1px solid var(--el-border-color-lighter);
+  padding: 13px 20px;
+  border-top: 1px solid var(--app-border);
   text-align: right;
+}
+
+.el-overlay-dialog {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
 }
 
 /* 弹层内的表单统一走两列栅格，备注字段单独占满整行 */
@@ -67,4 +369,135 @@
 
 .popup-form .el-form-item--full {
   width: 100%;
+}
+
+/* ---- 下拉与选择器 ---- */
+.el-dropdown-menu,
+.el-select-dropdown,
+.el-picker-panel {
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  box-shadow: var(--app-shadow-md);
+}
+
+.el-dropdown-menu {
+  padding: 4px;
+}
+
+.el-dropdown-menu__item {
+  height: 32px;
+  padding: 0 10px;
+  line-height: 32px;
+  border-radius: 5px;
+  font-size: 12.5px;
+}
+
+.el-dropdown-menu__item:not(.is-disabled):hover {
+  background: var(--app-surface-hover);
+  color: var(--app-ink);
+}
+
+.el-select-dropdown__item {
+  height: 32px;
+  line-height: 32px;
+  font-size: 12.5px;
+}
+
+/* ---- 提示、描述、消息 ---- */
+.el-alert {
+  padding: 12px 14px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+}
+
+.el-alert--info.is-light {
+  background: var(--app-surface-muted);
+  color: var(--app-ink-soft);
+}
+
+.el-alert__title {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.el-alert__description {
+  margin: 4px 0 0;
+  color: var(--app-muted);
+  font-size: 12.5px;
+  line-height: 1.65;
+}
+
+.el-descriptions__label {
+  color: var(--app-muted);
+  font-weight: 500;
+}
+
+.el-descriptions__cell {
+  font-size: 12.5px;
+}
+
+.el-descriptions__body .el-descriptions__table.is-bordered .el-descriptions__cell {
+  border-color: var(--app-border);
+}
+
+.el-message,
+.el-message-box {
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  box-shadow: var(--app-shadow-md);
+}
+
+.el-message-box {
+  padding: 20px;
+}
+
+.el-message-box__title {
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.el-message-box__content {
+  color: var(--app-ink-soft);
+  font-size: 13px;
+}
+
+/* ---- 开关 / 单选按钮组 / 进度 ---- */
+.el-switch {
+  --el-switch-on-color: var(--app-accent-solid);
+  --el-switch-off-color: var(--app-border-strong);
+}
+
+.el-radio-button__inner {
+  height: 30px;
+  padding: 0 12px;
+  border-color: var(--app-border-strong);
+  background: var(--app-surface);
+  color: var(--app-ink-soft);
+  font-size: 12.5px;
+  line-height: 28px;
+}
+
+.el-radio-button__original-radio:checked + .el-radio-button__inner {
+  background: var(--app-accent-solid);
+  border-color: var(--app-accent-solid);
+  box-shadow: -1px 0 0 0 var(--app-accent-solid);
+}
+
+.el-progress-bar__outer {
+  background: var(--app-surface-hover);
+}
+
+.el-progress-bar__inner {
+  background: var(--app-accent-solid);
+}
+
+.el-result__title p {
+  color: var(--app-ink);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.el-result__subtitle p {
+  color: var(--app-muted);
+  font-size: 12.5px;
 }
