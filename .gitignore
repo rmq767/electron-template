@@ -5,7 +5,7 @@ node_modules/
 out/
 dist/
 dist-*/
-release/
+release*/
 *.local
 
 # env（允许提交不含密钥的默认 .env / .env.development）

@@ -31,9 +31,10 @@ pnpm dev         # 起窗 + 三端热更（含主进程，见下文 -w）
 | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | `pnpm dev`                  | `electron-vite dev -w`。**`-w` 是必须的**：不加它主进程与 preload 的改动不会重建重启（实测确认，这是 electron-vite 6 的默认行为） |
 | `pnpm dev:renderer`         | 只起渲染层 dev server，不拉 Electron                                                                                              |
-| `pnpm build`                | typecheck + 三端构建，产物在 `out/`                                                                                               |
+| `pnpm build`                | clean + typecheck + 三端构建，产物在 `out/`                                                                                       |
+| `pnpm clean`                | 只清空 `out/`，不碰 `release/` 与用户数据                                                                                         |
 | `pnpm build:win`            | 上一步 + electron-builder 出 NSIS 安装包与 portable                                                                               |
-| `pnpm build:unpack`         | 只出 `release/win-unpacked/`，验证 file:// 加载最快                                                                               |
+| `pnpm build:unpack`         | 只出 `win-unpacked/`，验证 file:// 加载最快（默认在 `release/`）                                                                  |
 | `pnpm typecheck`            | `tsc -p tsconfig.node.json` + `vue-tsc -p tsconfig.web.json`，两套 lib 分开                                                       |
 | `pnpm lint` / `pnpm format` | ESLint 10 flat config / Prettier                                                                                                  |
 | `pnpm check:env`            | 环境与路径自检                                                                                                                    |
@@ -111,7 +112,7 @@ src/shared    共用层    纯类型 + 常量 + 无副作用函数，不得 impo
 | `RENDERER_VITE_API_BASE_URL` | 后端基址。**留空 = 不连后端**，`api/http` 会给出可读报错而不是假装能跑 |
 
 `APP_*` 不是 Vite 前缀变量：`electron.vite.config.ts` 用 `loadEnv` 读取后通过 `define` 注入主进程、
-preload 与渲染层，业务代码只从 `src/shared/constants/app.ts` 读。`electron-builder.js` 也读同一份
+preload 与渲染层，业务代码只从 `src/shared/constants/app.ts` 读。`electron-builder.cjs` 也读同一份
 `.env`，因此安装包名称、App ID 与运行时不会脱节。
 
 图标口径：Windows 安装包与运行时窗口都读 `resources/<APP_ICON>`；macOS 安装包图标仍是
@@ -161,12 +162,27 @@ preload 与渲染层，业务代码只从 `src/shared/constants/app.ts` 读。`e
 
 ## 发布与自动更新
 
-`pnpm build:win` 产出 NSIS 安装包（perUser，免 UAC、可换安装目录）与 portable 两种产物，在 `release/`。
+`pnpm build:win` 产出 NSIS 安装包（perUser，免 UAC、可换安装目录）与 portable 两种产物，默认在 `release/`。
 
-- **代码签名没配**：没有证书时任何签名配置都会让构建失败。正式分发需要 OV/EV 证书，未签名 exe 会触发 SmartScreen。
+**本机实测（2026-11-04）**：`pnpm build:unpack` 与 `pnpm build:win` 均已跑通；NSIS setup 约 117MB、portable 约 106MB、`app.asar` 约 3MB、`win-unpacked` 约 360MB；未签名状态为 `NotSigned`。
+
+项目路径含中文时（例如 `D:\Projects\后台模板\...`），electron-builder 解压 Electron 后移动目录会报 `EBUSY`。
+把输出目录指到纯 ASCII 路径即可：
+
+```bash
+BUILD_OUTPUT_DIR=D:/DevCache/build \
+ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ \
+ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/ \
+pnpm build:win
+```
+
+`ELECTRON_MIRROR` 必须显式给：electron-builder 的 Electron 下载不读 `.npmrc` 里的 `electron_mirror`，
+不给会在下载 158MB 的 Electron zip 后超时。
+
+- **代码签名没配**：没有证书时签名会被跳过（`NotSigned`），正式分发需要 OV/EV 证书；未签名 exe 会触发 SmartScreen。
 - **自动更新没集成**：它依赖真实分发基建（内网 HTTP 或制品库 + 版本发布流程），模板里无法验收。接入清单：
   1. `pnpm add electron-updater`
-  2. `electron-builder.js` 加 `publish: { provider: 'generic', url: '你的内网地址' }`
+  2. `electron-builder.cjs` 加 `publish: { provider: 'generic', url: '你的内网地址' }`
   3. 主进程 `app.whenReady()` 后 `autoUpdater.checkForUpdatesAndNotify()`
   4. 定好 semver 策略，并验证与 Electron 45 的兼容性
 
@@ -174,23 +190,24 @@ preload 与渲染层，业务代码只从 `src/shared/constants/app.ts` 读。`e
 
 ## 排障表
 
-| 现象                                                                                                                                          | 原因                                                                                                 | 处置                                                                                                                                                                                                                                                          |
-| --------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Timeout awaiting 'request' for 600000ms`（`failedTask=build`），输出目录一直是 0 KB                                                          | electron-builder 下载 **winCodeSign / nsis 工具链**超时，还没进解包阶段                              | 镜像要用**环境变量**传：`ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/`。`.npmrc` 里的 `electron_builder_binaries_mirror` 不一定被读到。先跑 `electron-builder --win --dir` 跳过 NSIS，能最快确认工具链是否下得来 |
-| `EBUSY: resource busy or locked` / `Device or resource busy`，对象是 `win-unpacked*/resources/default_app.asar`，且**没有任何 electron 进程** | 杀毒软件或索引器持有刚写入的大体积 PE 文件句柄（实测可持续十几分钟，跨盘 `mv` 也 Permission denied） | 等一会儿再删；反复 `rm` 无效。要根治就把项目目录与 `ELECTRON_BUILDER_CACHE` 加进 Windows Defender 排除项，或打开「开发者模式」（winCodeSign 解符号链接也需要该权限）                                                                                          |
-| `Unable to move the cache: 拒绝访问 (0x5)`                                                                                                    | 多个 Electron 实例共用同一 `userData` 抢缓存目录                                                     | 正常现象之一：开发期要多开调试属于预期，单实例锁在 dev 下刻意跳过；要干净环境就只开一个实例                                                                                                                                                                   |
-| 改主进程代码没反应                                                                                                                            | `electron-vite dev` 默认不监听主进程                                                                 | 用 `pnpm dev`（已带 `-w`）                                                                                                                                                                                                                                    |
-| 打包后白屏 / 资源 404                                                                                                                         | `file://` 下 history 路由与绝对路径不可用                                                            | 必须 `createWebHashHistory` + `base: './'`，模板已配                                                                                                                                                                                                          |
-| `pnpm install` 提示 `Ignored build scripts`                                                                                                   | pnpm 10 默认屏蔽构建脚本                                                                             | 已把 `electron-winstaller` 写进 `package.json` 的 `pnpm.onlyBuiltDependencies`；新增原生依赖时同样要登记                                                                                                                                                      |
-| 全局 npm `strict-ssl=false`                                                                                                                   | 供应链风险                                                                                           | 建议改为项目级配置或配企业 CA；模板不代改全局设置                                                                                                                                                                                                             |
+| 现象                                                                                                                                          | 原因                                                                                    | 处置                                                                                                                                                                                                                                        |
+| --------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Timeout awaiting 'request' for 600000ms`（`failedTask=build`），输出目录一直是 0 KB                                                          | ① Electron 本体下载超时；② winCodeSign / nsis 工具链下载超时                            | 两个镜像都用**环境变量**显式传：`ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/` 与 `ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/`。`.npmrc` 里的镜像名不保证被 electron-builder 读取 |
+| `EBUSY: resource busy or locked` / `Device or resource busy`，对象是 `win-unpacked*/resources/default_app.asar`，且**没有任何 electron 进程** | 项目/输出目录在非 ASCII 路径下（本机实测），或杀毒软件/索引器持有刚写入的 PE 文件句柄   | 用 `BUILD_OUTPUT_DIR=D:/DevCache/build` 把输出指到纯 ASCII 路径；仍失败再等一会儿或把缓存目录加进 Defender 排除项                                                                                                                           |
+| `app.asar` 异常大，含旧版本 PascalCase chunk 或 `release/` 目录                                                                               | `out/renderer/assets` 的 hash 文件不会自动清空；`files` 默认会包含项目里的旧输出目录    | 模板已在 `build` 前跑 `pnpm clean`，并在 `electron-builder.cjs` 排除 `release*/**`、`dist*/**`                                                                                                                                              |
+| `pnpm build:win` 只构建、不产出安装包，也没有报错                                                                                             | 配置文件曾叫 `electron-builder.js`，与 CLI 命令同名，Windows 下被当作命令执行后静默退出 | 配置已改名为 `electron-builder.cjs`；不要改回 `.js`                                                                                                                                                                                         |
+| `Unable to move the cache: 拒绝访问 (0x5)`                                                                                                    | 多个 Electron 实例共用同一 `userData` 抢缓存目录                                        | 正常现象之一：开发期要多开调试属于预期，单实例锁在 dev 下刻意跳过；要干净环境就只开一个实例                                                                                                                                                 |
+| 改主进程代码没反应                                                                                                                            | `electron-vite dev` 默认不监听主进程                                                    | 用 `pnpm dev`（已带 `-w`）                                                                                                                                                                                                                  |
+| 打包后白屏 / 资源 404                                                                                                                         | `file://` 下 history 路由与绝对路径不可用                                               | 必须 `createWebHashHistory` + `base: './'`，模板已配                                                                                                                                                                                        |
+| `pnpm install` 提示 `Ignored build scripts`                                                                                                   | pnpm 10 默认屏蔽构建脚本                                                                | 已把 `electron-winstaller`、`@parcel/watcher` 写进 `package.json` 的 `pnpm.onlyBuiltDependencies`；新增原生依赖时同样要登记                                                                                                                 |
+| 全局 npm `strict-ssl=false`                                                                                                                   | 供应链风险                                                                              | 建议改为项目级配置或配企业 CA；模板不代改全局设置                                                                                                                                                                                           |
 
 ### 打包这一步的当前状态（如实记录）
 
-`pnpm build`（typecheck + 三端构建）**已通过**；`electron-builder` 出安装包**尚未验证通过**，
-卡在上面第一行的工具链下载超时。对照实验已排除路径编码因素：
-同一份代码在中文路径 `D:\Projects\后台模板\electron-template` 与纯 ASCII 路径 `D:\t\et`
-**推进到完全相同的阶段、卡在同一处**，所以不是 rcedit/makensis 的非 ASCII 问题。
-装好离线工具链或换网络后重跑 `pnpm build:win` 即可，模板配置本身不需要改。
+- `pnpm build`、`pnpm build:unpack`、`pnpm build:win` 均已通过（输出目录在 ASCII 路径，如 `D:/DevCache/build`）。
+- 未签名：`Get-AuthenticodeSignature ...setup.exe` 返回 `NotSigned`；这是没有证书时的预期结果。
+- 中文项目路径是**输出目录移动阶段**的实际阻塞点，不是下载阶段；`BUILD_OUTPUT_DIR` 已作为正式逃生口。
+- 打包前的 `pnpm clean` 只清 `out/`；`release*/`、`dist*/` 已从 asar 排除。
 
 ---
 

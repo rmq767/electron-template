@@ -93,7 +93,7 @@ src/renderer   普通 Vue 应用；禁 Node/electron，只认 window.api
 - 三端唯一读取入口是 `src/shared/constants/app.ts`；页面/主进程不得再写一份名称或图标。
 - 环境差异只放 `.env.development` / `.env.production`；不要把同一份身份值复制到 mode 文件。
 - `RENDERER_VITE_*` 会打进前端 bundle，**不是秘密**；密钥只能放 `MAIN_VITE_*`。
-- `electron-builder.js` 与运行时读同一份 `.env`；新增构建期身份字段时同步改它。
+- `electron-builder.cjs` 与运行时读同一份 `.env`；新增构建期身份字段时同步改它。不要改名回 `electron-builder.js`：Windows 下会与 CLI 命令同名，脚本里的 `electron-builder` 会执行配置文件本身。
 - `APP_NAME` 决定 `userData` 目录（`%APPDATA%/<APP_NAME>`）；改名等于换数据目录，必须在 README 提示迁移。
 - 不再引入 `RENDERER_VITE_FEATURE_LOGIN`、`electron-builder.yml` 或 `APP_USER_MODEL_ID` 这类第二真源。
 - 品牌改名时同时检查：窗口标题、登录页、侧栏、菜单、安装包、图标、`userData` 路径。macOS 安装包图标仍使用 `build/icon.icns`，换品牌时要单独替换。
@@ -145,7 +145,7 @@ pnpm build
   `pnpm dev --remoteDebuggingPort=9222`，用 CDP 的真实指针点击（不要只调 `.click()`），并用 Win32 / 窗口标题确认窗口真的出现。
 - UI 验证至少覆盖：亮/暗主题、启动页 → 主窗、登录窗 → 主窗、退出登录 → 登录窗、弹层打开/取消、独立窗口往返/关闭、标题栏最大化/还原。
 - 多 agent 并行时，typecheck / lint / build 与浏览器/窗口实测由主 agent 统一跑一次；子 agent 不各自下结论。
-- 不虚报验证结果：`electron-builder` 出安装包仍是本机未验证项，没跑通就说没跑通。
+- 不虚报验证结果：`electron-builder` 出安装包已在本机跑通 `--dir` 与 `--win`；项目/输出路径含非 ASCII 时必须用 `BUILD_OUTPUT_DIR` 指到 ASCII 路径，否则 `EBUSY`。换机器或换网络后要重新验证，没跑通就说没跑通。
 - 结束前清理自己启动的 Electron / dev server；只按项目路径精确结束进程，不杀无关 Electron 应用。
 - 不跳过 husky / `--no-verify`；pre-commit 失败要修根因。
 - 未明确要求不 `git commit`、不 `git push`、不创建 PR。

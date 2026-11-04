@@ -6,6 +6,7 @@
   "author": "",
   "scripts": {
     "check:env": "node scripts/check-env.mjs",
+    "clean": "node scripts/clean.mjs",
     "format": "prettier --write .",
     "lint": "eslint --cache .",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
@@ -14,7 +15,7 @@
     "start": "electron-vite preview",
     "dev": "electron-vite dev -w",
     "dev:renderer": "electron-vite dev --rendererOnly",
-    "build": "pnpm typecheck && electron-vite build",
+    "build": "pnpm typecheck && pnpm clean && electron-vite build",
     "postinstall": "install-electron && electron-builder install-app-deps",
     "prepare": "husky",
     "build:unpack": "pnpm build && electron-builder --dir",

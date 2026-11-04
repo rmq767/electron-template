@@ -42,8 +42,8 @@ export default defineConfig(
     }
   },
   {
-    // scripts/ 与 electron-builder.js 是给 node 直接跑的纯 JS 工具，不适用 TS 项目的写法约束
-    files: ['scripts/**/*.mjs', 'electron-builder.js'],
+    // scripts/ 与 electron-builder.cjs 是给 node 直接跑的纯 JS 工具，不适用 TS 项目的写法约束
+    files: ['scripts/**/*.mjs', 'electron-builder.cjs'],
     rules: {
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/no-require-imports': 'off'

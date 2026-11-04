@@ -34,13 +34,16 @@ const executableName =
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '') || 'app'
 const appIcon = path.join(__dirname, 'resources', iconFile)
+// 项目路径含非 ASCII 时，electron-builder 解压 Electron 后移动目录会 EBUSY；
+// 允许把输出目录指到纯 ASCII 路径，例如 BUILD_OUTPUT_DIR=D:/DevCache/build。
+const outputDir = process.env.BUILD_OUTPUT_DIR?.trim() || 'release'
 
 module.exports = {
   appId,
   productName,
   directories: {
     buildResources: 'build',
-    output: 'release'
+    output: outputDir
   },
   // 身份与图标已抽到 .env；构建配置本身不进包
   files: [
@@ -51,6 +54,10 @@ module.exports = {
     '!{.env,.env.*,.npmrc,pnpm-lock.yaml}',
     '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}',
     '!{.husky,scripts,docs}/**',
+    '!release*/**',
+    '!dist*/**',
+    '!out/**/*.map',
+    '!*.log',
     '!electron-builder.{yml,js,cjs,mjs,ts}',
     '!resources/**'
   ],
@@ -70,12 +77,12 @@ module.exports = {
     perMachine: false,
     allowToChangeInstallationDirectory: true,
     createDesktopShortcut: 'always',
-    artifactName: '${name}-${version}-${arch}-setup.${ext}',
+    artifactName: '${productName}-${version}-${arch}-setup.${ext}',
     shortcutName: productName,
     uninstallDisplayName: productName
   },
   portable: {
-    artifactName: '${name}-${version}-${arch}-portable.${ext}'
+    artifactName: '${productName}-${version}-${arch}-portable.${ext}'
   },
   // 不配 publish：模板没有真实分发地址，写一个跑不通的自动更新器等于负收益。
   // 接入清单见 README「发布与自动更新」一节。
@@ -92,7 +99,7 @@ module.exports = {
     notarize: false
   },
   dmg: {
-    artifactName: '${name}-${version}.${ext}'
+    artifactName: '${productName}-${version}.${ext}'
   },
   linux: {
     target: ['AppImage', 'deb'],
@@ -100,7 +107,7 @@ module.exports = {
     category: 'Utility'
   },
   appImage: {
-    artifactName: '${name}-${version}.${ext}'
+    artifactName: '${productName}-${version}.${ext}'
   },
   npmRebuild: false
 }
