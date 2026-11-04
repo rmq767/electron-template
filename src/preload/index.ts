@@ -5,6 +5,7 @@ import { appApi } from './api/app'
 import { dialogApi } from './api/dialog'
 import { logApi } from './api/log'
 import { storeApi } from './api/store'
+import { windowApi } from './api/window'
 
 // satisfies 让实现与 Api 在编译期对齐：少一个方法或返回类型不符都会直接报错，
 // 同时保留字面量推断，不像 `: Api` 那样把具体类型抹平。
@@ -12,7 +13,8 @@ const api = {
   app: appApi,
   store: storeApi,
   dialog: dialogApi,
-  log: logApi
+  log: logApi,
+  window: windowApi
 } satisfies Api
 
 if (process.contextIsolated) {

@@ -1,0 +1,30 @@
+/* 渲染进程全局样式。Element Plus 的覆盖只允许出现在 element-theme.css。 */
+
+:root {
+  --app-header-height: 48px;
+  --app-tabs-height: 34px;
+  --app-sidenav-width: 208px;
+  --app-sidenav-collapsed-width: 64px;
+  --app-content-bg: #f4f5f7;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family:
+    'PingFang SC', 'Microsoft YaHei', 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue',
+    Arial, sans-serif;
+  font-size: 14px;
+  color: var(--el-text-color-primary);
+  background: var(--app-content-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}

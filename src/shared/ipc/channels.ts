@@ -6,6 +6,13 @@ export const IPC = {
   App: {
     GetInfo: 'app:get-info'
   },
+  Window: {
+    Open: 'window:open',
+    Close: 'window:close',
+    GetPayload: 'window:get-payload',
+    PushProps: 'window:push-props',
+    Focus: 'window:focus'
+  },
   Store: {
     Get: 'store:get',
     Set: 'store:set'
@@ -16,5 +23,9 @@ export const IPC = {
   },
   Log: {
     Write: 'log:write'
+  },
+  /** 主进程 → 渲染进程的推送只允许走 Evt 段。 */
+  Evt: {
+    WindowProps: 'evt:window-props'
   }
 } as const

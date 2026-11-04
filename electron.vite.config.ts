@@ -27,6 +27,8 @@ export default defineConfig({
     resolve: { alias: nodeAlias }
   },
   renderer: {
+    // 生产包用 file:// 加载，绝对路径 /assets 会取不到资源
+    base: './',
     resolve: { alias: webAlias },
     plugins: [vue()]
   }

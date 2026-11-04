@@ -1,5 +1,6 @@
 import { app, BrowserWindow } from 'electron'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
+import { closeAllWindows, setMainWindow } from '@main/window/manager'
 import { createMainWindow } from '@main/window/main-window'
 import { registerIpc } from '@main/ipc'
 import { logger, pruneLogs } from '@main/log/logger'
@@ -16,12 +17,18 @@ app.whenReady().then(() => {
   app.on('browser-window-created', (_, window) => optimizer.watchWindowShortcuts(window))
 
   registerIpc()
-  createMainWindow()
+
+  const main = createMainWindow()
+  setMainWindow(main)
+  // 主窗口关掉时先把独立窗口收干净，避免残留进程与悬挂的调用方
+  main.on('closed', () => closeAllWindows())
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createMainWindow()
+    if (BrowserWindow.getAllWindows().length === 0) setMainWindow(createMainWindow())
   })
 })
+
+app.on('before-quit', () => closeAllWindows())
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()

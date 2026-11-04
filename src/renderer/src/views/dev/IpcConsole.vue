@@ -2,6 +2,8 @@
 import { ref } from 'vue'
 import type { AppInfo } from '@shared/ipc/types'
 
+defineOptions({ name: 'DevIpc' })
+
 /**
  * IPC 基座的验收台：每个按钮对应一条通道，跑通即说明
  * channel 常量 → schema 契约 → preload 封装 → 渲染层调用 整条链路是通的。

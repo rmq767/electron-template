@@ -1,5 +1,14 @@
 import type { AppInfo, OpenFileOptions, SaveFileOptions } from '@shared/ipc/types'
 import type { SettingsKey, SettingsValueOf } from '@shared/ipc/schema'
+import type {
+  OpenOutcome,
+  OpenWindowOptions,
+  WindowKind,
+  WindowPayload,
+  WindowPropsMap,
+  WindowResultMap,
+  WindowSelf
+} from '@shared/ipc/window-spec'
 
 /**
  * 暴露给渲染进程的宿主能力，按业务形状组织（而不是按 channel 组织）。
@@ -28,5 +37,22 @@ export interface Api {
     info(message: string, meta?: unknown): void
     warn(message: string, meta?: unknown): void
     error(message: string, meta?: unknown): void
+  }
+  /**
+   * 独立窗口。用法与 dialog 一致：带参数开、拿返回值。
+   * self 非 null 说明当前页面正运行在独立窗口里。
+   */
+  window: {
+    readonly self: WindowSelf | null
+    open<K extends WindowKind>(
+      kind: K,
+      props?: WindowPropsMap[K],
+      options?: OpenWindowOptions
+    ): Promise<OpenOutcome<WindowResultMap[K]>>
+    close(result?: unknown): Promise<void>
+    getPayload<K extends WindowKind>(): Promise<WindowPayload<K>>
+    /** 返回解绑函数，组件卸载必须调用，否则监听器跨窗口残留。 */
+    pushProps<K extends WindowKind>(callback: (props: WindowPropsMap[K]) => void): () => void
+    focus(windowId: string): Promise<void>
   }
 }

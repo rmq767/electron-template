@@ -1,0 +1,155 @@
+import { join } from 'path'
+import { pathToFileURL } from 'url'
+import { BrowserWindow } from 'electron'
+import { is } from '@electron-toolkit/utils'
+import { IPC } from '@shared/ipc/channels'
+import type {
+  OpenOutcome,
+  OpenWindowOptions,
+  WindowKind,
+  WindowPayload
+} from '@shared/ipc/window-spec'
+import { logger } from '@main/log/logger'
+import { windowPresets } from './presets'
+import { attachWindowLifecycle } from './lifecycle'
+import * as registry from './registry'
+
+let mainWindow: BrowserWindow | null = null
+
+export function setMainWindow(win: BrowserWindow): void {
+  mainWindow = win
+}
+
+export function getMainWindow(): BrowserWindow | null {
+  return mainWindow
+}
+
+/**
+ * 单入口 + hash 分路由：独立窗口与主界面共用同一份 index.html 与 chunk，
+ * dev / HMR / 生产 file:// 只有一条路径。
+ */
+function entryHref(kind: WindowKind, windowId: string): string {
+  const hash = `#/w/${kind}?windowId=${encodeURIComponent(windowId)}`
+  const devUrl = process.env['ELECTRON_RENDERER_URL']
+  if (is.dev && devUrl) return `${devUrl.replace(/\/$/, '')}/${hash}`
+  return `${pathToFileURL(join(__dirname, '../renderer/index.html')).href}${hash}`
+}
+
+export function openWindow(
+  kind: WindowKind,
+  props?: unknown,
+  options?: OpenWindowOptions,
+  openerContentsId?: number
+): Promise<OpenOutcome<unknown>> {
+  const preset = windowPresets[kind]
+
+  const existing = preset.singleton ? registry.findByKind(kind) : undefined
+  if (existing) {
+    if (!existing.win.isDestroyed()) {
+      // 复用单例：聚焦并把新参数推进去，调用方的 await 仍然在同一处关闭时兑现
+      existing.win.focus()
+      pushProps(existing.windowId, props)
+      logger.info(`复用单例窗口 ${existing.windowId}`)
+      return new Promise((resolve) => registry.enqueueSetter(existing.windowId, resolve))
+    }
+    registry.remove(existing.windowId)
+  }
+
+  const windowId = registry.createWindowId(kind)
+  const win = new BrowserWindow({
+    width: options?.width ?? preset.width,
+    height: options?.height ?? preset.height,
+    title: options?.title ?? preset.title,
+    show: false,
+    backgroundColor: '#f4f5f7',
+    // 模态必须同时给 parent 与 modal，二者缺一不可
+    parent: preset.modal ? (mainWindow ?? undefined) : undefined,
+    modal: preset.modal,
+    resizable: preset.resizable,
+    minimizable: false,
+    maximizable: preset.resizable,
+    skipTaskbar: preset.skipTaskbar,
+    autoHideMenuBar: true,
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      sandbox: false,
+      contextIsolation: true,
+      nodeIntegration: false,
+      // 身份走 argv（同步可得），业务数据一律走 registry + GetPayload，不进 URL
+      additionalArguments: [`--window-id=${windowId}`, `--window-kind=${kind}`]
+    }
+  })
+
+  registry.add({
+    windowId,
+    kind,
+    win,
+    contentsId: win.webContents.id,
+    props,
+    pending: [],
+    createdAt: Date.now()
+  })
+
+  logger.info(`打开独立窗口 ${windowId}`, { kind, opener: openerContentsId })
+
+  return new Promise((resolve) => {
+    registry.enqueueSetter(windowId, resolve)
+
+    win.once('ready-to-show', () => win.show())
+
+    // 无条件兜底：点 X、父窗口关闭、崩溃都要让调用方的 await 有返回值，
+    // 否则 Promise 永久悬挂，这是多窗口体系最常见的 bug。
+    win.on('closed', () => {
+      registry.settle(windowId, { ok: false, reason: 'cancelled' })
+      registry.remove(windowId)
+    })
+
+    attachWindowLifecycle(win, windowId, Date.now())
+    void win.loadURL(entryHref(kind, windowId))
+  })
+}
+
+export function closeWindow(contentsId: number, result?: unknown): void {
+  const entry = registry.findByContents(contentsId)
+  if (!entry) throw new Error(`[window] 未知窗口来源：${contentsId}`)
+  registry.settle(
+    entry.windowId,
+    result === undefined ? { ok: false, reason: 'cancelled' } : { ok: true, data: result }
+  )
+  if (!entry.win.isDestroyed()) entry.win.close()
+}
+
+export function getPayload(contentsId: number): WindowPayload {
+  const entry = registry.findByContents(contentsId)
+  if (!entry) throw new Error(`[window] 未知窗口来源：${contentsId}`)
+  // registry 存的是 unknown（结构化克隆的原样数据），这里按登记时的 kind 收敛回去
+  return {
+    windowId: entry.windowId,
+    kind: entry.kind,
+    props: entry.props as WindowPayload['props']
+  }
+}
+
+/** 向窗口页推送新的 props（单例复用时用），窗口页通过 pushProps 订阅接收。 */
+export function pushProps(windowId: string, props: unknown): void {
+  const entry = registry.get(windowId)
+  if (!entry || entry.win.isDestroyed()) return
+  entry.props = props
+  entry.win.webContents.send(IPC.Evt.WindowProps, { windowId, props })
+}
+
+export function focusWindow(windowId: string): void {
+  const entry = registry.get(windowId)
+  if (!entry || entry.win.isDestroyed()) return
+  if (entry.win.isMinimized()) entry.win.restore()
+  entry.win.focus()
+}
+
+/** 主窗口关闭或应用退出前调用，避免残留进程与悬挂的调用方。 */
+export function closeAllWindows(): void {
+  for (const entry of registry.list()) {
+    registry.settle(entry.windowId, { ok: false, reason: 'closed-by-parent' })
+    if (!entry.win.isDestroyed()) entry.win.destroy()
+  }
+  registry.list().forEach((entry) => registry.remove(entry.windowId))
+}
