@@ -88,9 +88,12 @@ function write(entry: LogEntry): void {
 }
 
 export const logger = {
-  info: (message: string, meta?: unknown): void => write({ level: 'info', scope: 'main', message, meta }),
-  warn: (message: string, meta?: unknown): void => write({ level: 'warn', scope: 'main', message, meta }),
-  error: (message: string, meta?: unknown): void => write({ level: 'error', scope: 'main', message, meta }),
+  info: (message: string, meta?: unknown): void =>
+    write({ level: 'info', scope: 'main', message, meta }),
+  warn: (message: string, meta?: unknown): void =>
+    write({ level: 'warn', scope: 'main', message, meta }),
+  error: (message: string, meta?: unknown): void =>
+    write({ level: 'error', scope: 'main', message, meta }),
   /** 渲染进程经 IPC.Log.Write 汇入，落进同一份文件。 */
   fromRenderer: (entry: LogEntry): void => write({ ...entry, scope: 'renderer' }),
   dir: logDir,

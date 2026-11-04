@@ -59,7 +59,9 @@ onScopeDispose(stop)
 <template>
   <div class="window-page">
     <WindowGate :ready="state.ready.value" :error="state.error.value" :rows="3">
-      <p class="row">待导出行数：<b>{{ total }}</b></p>
+      <p class="row">
+        待导出行数：<b>{{ total }}</b>
+      </p>
       <el-progress :percentage="progress" :status="progress >= 100 ? 'success' : undefined" />
       <div class="row window-page__footer">
         <el-button v-if="!running" type="primary" @click="start">开始导出</el-button>

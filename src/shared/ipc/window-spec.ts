@@ -44,8 +44,7 @@ export interface WindowPayload<K extends WindowKind = WindowKind> {
 export type WindowCloseReason = 'cancelled' | 'closed-by-parent' | 'crashed' | 'error'
 
 export type OpenOutcome<T = unknown> =
-  | { ok: true; data: T }
-  | { ok: false; reason: WindowCloseReason; message?: string }
+  { ok: true; data: T } | { ok: false; reason: WindowCloseReason; message?: string }
 
 export interface OpenWindowOptions {
   /** 覆盖 preset 里的标题 */

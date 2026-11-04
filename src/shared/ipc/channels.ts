@@ -4,7 +4,8 @@
  */
 export const IPC = {
   App: {
-    GetInfo: 'app:get-info'
+    GetInfo: 'app:get-info',
+    ExportDiagnostics: 'app:export-diagnostics'
   },
   Window: {
     Open: 'window:open',

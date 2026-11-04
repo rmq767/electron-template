@@ -9,10 +9,10 @@ import type { UserDTO } from '@shared/types/user'
  * 这是「同一个表单从 dialog 平滑升级成 window」的前提。
  * 类型放 @shared/types/user，因为 <script setup> 不允许 export，且主进程侧也要用。
  */
-const props = withDefaults(
-  defineProps<{ model?: UserDTO | null; mode?: 'create' | 'edit' }>(),
-  { model: null, mode: 'create' }
-)
+const props = withDefaults(defineProps<{ model?: UserDTO | null; mode?: 'create' | 'edit' }>(), {
+  model: null,
+  mode: 'create'
+})
 
 const emit = defineEmits<{
   done: [value: UserDTO]
@@ -74,13 +74,7 @@ defineExpose({ submit, cancel, validate, title })
 </script>
 
 <template>
-  <el-form
-    ref="formRef"
-    :model="form"
-    :rules="rules"
-    label-width="92px"
-    class="popup-form"
-  >
+  <el-form ref="formRef" :model="form" :rules="rules" label-width="92px" class="popup-form">
     <!-- 两列栅格：奇数个字段时落单项放最后一行，也不独占整行 -->
     <el-row :gutter="16">
       <el-col :span="12">

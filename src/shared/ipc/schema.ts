@@ -1,4 +1,5 @@
 import type { AppInfo, LogEntry, OpenFileOptions, SaveFileOptions } from './types'
+import type { AuthSession } from '../types/auth'
 import type {
   OpenOutcome,
   OpenWindowOptions,
@@ -14,6 +15,7 @@ import { IPC } from './channels'
  */
 export interface RequestSchema {
   [IPC.App.GetInfo]: { req: undefined; res: AppInfo }
+  [IPC.App.ExportDiagnostics]: { req: undefined; res: string }
   [IPC.Window.Open]: { req: OpenWindowInput; res: OpenOutcome<unknown> }
   [IPC.Window.Close]: { req: { result?: unknown }; res: void }
   [IPC.Window.GetPayload]: { req: undefined; res: WindowPayload }
@@ -54,11 +56,13 @@ export type EventPayload<E extends EventChannel> = EventSchema[E]
  * 持久化设置的键与取值。落在 userData/settings.json，由主进程读写，
  * 渲染进程只能通过 window.api.store 访问。
  */
-export type SettingsKey = 'ui.theme' | 'ui.sidebarCollapsed'
+export type SettingsKey = 'ui.theme' | 'ui.sidebarCollapsed' | 'auth.session'
 
 export type SettingsValueOf<K extends SettingsKey> = K extends 'ui.theme'
   ? 'light' | 'dark'
-  : boolean
+  : K extends 'auth.session'
+    ? AuthSession | null
+    : boolean
 
 export type SettingsValue = SettingsValueOf<SettingsKey>
 

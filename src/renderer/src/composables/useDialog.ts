@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, type Ref } from 'vue'
 
 /**
  * 页面内弹层的可见性与提交流程。
@@ -10,10 +10,18 @@ export interface UseDialogOptions {
   onRefresh?: () => void
 }
 
-export function useDialog<T = undefined>(options: UseDialogOptions = {}) {
+export interface UseDialogReturn<T> {
+  visible: Ref<boolean>
+  loading: Ref<boolean>
+  payload: Ref<T | null>
+  open: (data?: T) => void
+  close: (refresh?: boolean) => void
+}
+
+export function useDialog<T = undefined>(options: UseDialogOptions = {}): UseDialogReturn<T> {
   const visible = ref(false)
   const loading = ref(false)
-  const payload = ref<T | null>(null) as { value: T | null }
+  const payload = ref<T | null>(null) as Ref<T | null>
 
   function open(data?: T): void {
     payload.value = (data ?? null) as T | null

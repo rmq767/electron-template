@@ -1,8 +1,8 @@
 <script setup lang="ts">
-withDefaults(
-  defineProps<{ ready: boolean; error?: string; rows?: number }>(),
-  { error: '', rows: 6 }
-)
+withDefaults(defineProps<{ ready: boolean; error?: string; rows?: number }>(), {
+  error: '',
+  rows: 6
+})
 </script>
 
 <template>

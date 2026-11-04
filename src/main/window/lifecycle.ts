@@ -19,7 +19,11 @@ function rendererMemoryMb(): number {
  * 崩溃只影响它自己 —— 这是决策表里触发条件 5 的唯一硬收益。
  * did-finish-load 的耗时与内存增量用来替换决策表里「待实测」的估计数字。
  */
-export function attachWindowLifecycle(win: BrowserWindow, windowId: string, createdAt: number): void {
+export function attachWindowLifecycle(
+  win: BrowserWindow,
+  windowId: string,
+  createdAt: number
+): void {
   const baseline = rendererMemoryMb()
 
   win.webContents.on('did-finish-load', () => {

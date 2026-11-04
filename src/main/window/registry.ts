@@ -45,7 +45,10 @@ export function remove(windowId: string): void {
   entries.delete(windowId)
 }
 
-export function enqueueSetter(windowId: string, setter: (outcome: OpenOutcome<unknown>) => void): void {
+export function enqueueSetter(
+  windowId: string,
+  setter: (outcome: OpenOutcome<unknown>) => void
+): void {
   entries.get(windowId)?.pending.push(setter)
 }
 

@@ -56,6 +56,12 @@ export const routes: RouteRecordRaw[] = [
     ]
   },
   {
+    path: '/login',
+    name: 'Login',
+    component: () => import('@renderer/views/login/index.vue'),
+    meta: { title: '登录', hidden: true }
+  },
+  {
     path: '/w/user-form',
     name: 'WUserForm',
     component: () => import('@renderer/windows/UserFormWindow.vue'),

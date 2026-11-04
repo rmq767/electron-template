@@ -11,6 +11,8 @@ import 'element-plus/theme-chalk/dark/css-vars.css'
 import App from './App.vue'
 import router from './router'
 import { useAppStore } from './stores/app'
+import { useAuthStore } from './stores/auth'
+import { configureHttp } from './api/http'
 
 const app = createApp(App)
 const pinia = createPinia()
@@ -29,7 +31,22 @@ app.config.errorHandler = (err, _instance, info) => {
   })
 }
 
-// 主题与侧栏状态要从 userData 恢复，必须在挂载前把 store 建好
-useAppStore(pinia).hydrate()
+/**
+ * 先恢复偏好与会话，再挂载：否则首次导航的守卫会在 store 还没水合时判定未登录，
+ * 把已登录用户错误地弹回登录页。
+ */
+async function bootstrap(): Promise<void> {
+  const appStore = useAppStore(pinia)
+  const authStore = useAuthStore(pinia)
 
-app.mount('#app')
+  configureHttp({
+    getToken: () => authStore.session?.token ?? null,
+    onUnauthorized: () => void authStore.clear()
+  })
+
+  await Promise.all([appStore.hydrate(), authStore.restore()])
+  app.mount('#app')
+  await router.isReady()
+}
+
+void bootstrap()

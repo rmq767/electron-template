@@ -1,11 +1,5 @@
 import { IPC } from '@shared/ipc/channels'
-import {
-  closeWindow,
-  focusWindow,
-  getPayload,
-  openWindow,
-  pushProps
-} from '@main/window/manager'
+import { closeWindow, focusWindow, getPayload, openWindow, pushProps } from '@main/window/manager'
 import { handle } from './handle'
 
 export function registerWindowHandlers(): void {

@@ -7,7 +7,8 @@ import path from 'node:path'
 
 const ASCII_CACHE_ROOT = 'D:/DevCache'
 
-const isAscii = (value) => /^[\x00-\x7F]*$/.test(value)
+// 只含 0x00-0x7F 才算 ASCII；用码点判断而不是正则控制字符区间（lint 会拦 \x00 类正则）
+const isAscii = (value) => [...value].every((ch) => ch.codePointAt(0) <= 0x7f)
 
 const compareVersion = (a, b) => {
   const pa = a.split('.').map(Number)
@@ -21,11 +22,11 @@ const compareVersion = (a, b) => {
 // electron-vite 6 的 engines: ^20.19.0 || >=22.12.0
 const checkNode = () => {
   const current = process.versions.node
-  const ok =
-    compareVersion(current, '20.19.0') >= 0 || compareVersion(current, '22.12.0') >= 0
-  const supported =
-    compareVersion(current, '21.0.0') < 0 || compareVersion(current, '22.12.0') >= 0
-  return ok && supported ? [true, `v${current}`] : [false, `v${current}（需要 ^20.19.0 或 >=22.12.0）`]
+  const ok = compareVersion(current, '20.19.0') >= 0 || compareVersion(current, '22.12.0') >= 0
+  const supported = compareVersion(current, '21.0.0') < 0 || compareVersion(current, '22.12.0') >= 0
+  return ok && supported
+    ? [true, `v${current}`]
+    : [false, `v${current}（需要 ^20.19.0 或 >=22.12.0）`]
 }
 
 const checks = []
@@ -61,7 +62,12 @@ const cacheDirs = [
 for (const [name, dir] of cacheDirs) {
   const value = process.env[name]
   if (value === undefined || value === '') {
-    add(`缓存 ${name}`, false, '(未设置，回落到 %LOCALAPPDATA% 下的中文路径)', `setx ${name} "${ASCII_CACHE_ROOT}/${dir}"`)
+    add(
+      `缓存 ${name}`,
+      false,
+      '(未设置，回落到 %LOCALAPPDATA% 下的中文路径)',
+      `setx ${name} "${ASCII_CACHE_ROOT}/${dir}"`
+    )
   } else {
     add(`缓存 ${name}`, isAscii(value), value, `改到 ASCII 目录，例如 ${ASCII_CACHE_ROOT}/${dir}`)
   }

@@ -29,8 +29,10 @@ const stack = [
       <el-col :span="10">
         <el-card shadow="never" header="先读这一页">
           <p class="desc">
-            模板的核心是一份可操作的判断标准：<b>默认用 dialog</b>，只有命中「需要并排操作、独立任务栏条目、
-            同一表单并行多开、长任务跨路由存活、崩溃隔离、独立渲染上下文」这 6 条之一才升级为独立窗口。
+            模板的核心是一份可操作的判断标准：<b>默认用 dialog</b
+            >，只有命中「需要并排操作、独立任务栏条目、
+            同一表单并行多开、长任务跨路由存活、崩溃隔离、独立渲染上下文」这 6
+            条之一才升级为独立窗口。
           </p>
           <el-space wrap>
             <el-button type="primary" @click="router.push('/demo/dialog')">弹层示例</el-button>

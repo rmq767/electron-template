@@ -40,7 +40,11 @@ onScopeDispose(() => window.removeEventListener('keydown', onKeydown))
 <template>
   <div class="window-page">
     <WindowGate :ready="state.ready.value" :error="state.error.value">
-      <UserForm ref="formRef" :mode="state.props.value?.id ? 'edit' : 'create'" :model="state.props.value" />
+      <UserForm
+        ref="formRef"
+        :mode="state.props.value?.id ? 'edit' : 'create'"
+        :model="state.props.value"
+      />
       <div class="window-page__footer">
         <el-button @click="cancel">取消</el-button>
         <el-button type="primary" :loading="saving" @click="submit">保存并回传</el-button>

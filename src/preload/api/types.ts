@@ -17,6 +17,8 @@ import type {
 export interface Api {
   app: {
     getInfo(): Promise<AppInfo>
+    /** 生成诊断包并返回文件路径。 */
+    exportDiagnostics(): Promise<string>
   }
   /**
    * 读写 userData/settings.json。

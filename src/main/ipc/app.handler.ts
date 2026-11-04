@@ -1,6 +1,7 @@
 import { app } from 'electron'
 import { IPC } from '@shared/ipc/channels'
 import type { AppPlatform } from '@shared/ipc/types'
+import { createDiagnosticsPackage } from '@main/log/diagnostics'
 import { handle } from './handle'
 
 export function registerAppHandlers(): void {
@@ -17,4 +18,6 @@ export function registerAppHandlers(): void {
       chrome: process.versions.chrome
     }
   }))
+
+  handle(IPC.App.ExportDiagnostics, () => createDiagnosticsPackage())
 }

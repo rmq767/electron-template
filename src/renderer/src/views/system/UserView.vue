@@ -52,7 +52,10 @@ function onCancel(): void {
 }
 
 async function onDelete(row: UserDTO): Promise<void> {
-  const ok = await confirmAction(`确定删除「${row.name}」吗？`, { danger: true, confirmText: '删除' })
+  const ok = await confirmAction(`确定删除「${row.name}」吗？`, {
+    danger: true,
+    confirmText: '删除'
+  })
   if (!ok) return
   list.value = list.value.filter((item) => item.id !== row.id)
   ElMessage.success('已删除')

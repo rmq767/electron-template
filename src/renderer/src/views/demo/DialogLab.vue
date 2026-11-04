@@ -90,7 +90,12 @@ async function onDelete(): Promise<void> {
       <UserForm ref="dialogForm" mode="edit" :model="dialog.payload.value" />
     </MyDialog>
 
-    <MyDrawer v-model="drawerVisible" title="编辑用户（抽屉）" :size="640" @confirm="onDrawerConfirm">
+    <MyDrawer
+      v-model="drawerVisible"
+      title="编辑用户（抽屉）"
+      :size="640"
+      @confirm="onDrawerConfirm"
+    >
       <UserForm ref="drawerForm" mode="edit" :model="current" />
     </MyDrawer>
   </div>
