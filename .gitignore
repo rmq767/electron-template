@@ -1,0 +1,39 @@
+# dependencies
+node_modules/
+
+# build output
+out/
+dist/
+release/
+*.local
+
+# env（允许提交不含密钥的默认 .env / .env.development）
+.env.*.local
+
+# logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-error.log*
+
+# editor
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# os
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# tooling caches
+.eslintcache
+.cache/
