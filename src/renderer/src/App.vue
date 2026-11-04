@@ -1,22 +1,26 @@
 <script setup lang="ts">
 import { APP_NAME } from '@shared/constants/app'
-import Versions from '@renderer/components/Versions.vue'
+import IpcConsole from '@renderer/views/dev/IpcConsole.vue'
 </script>
 
 <template>
-  <img alt="logo" class="logo" src="./assets/electron.svg" />
-  <div class="creator">{{ APP_NAME }}</div>
-  <div class="text">
-    Build an Electron app with
-    <span class="vue">Vue</span>
-    and
-    <span class="ts">TypeScript</span>
-  </div>
-  <p class="tip">Please try pressing <code>F12</code> to open the devTool</p>
-  <div class="actions">
-    <div class="action">
-      <a href="https://electron-vite.org/" target="_blank" rel="noreferrer">Documentation</a>
-    </div>
-  </div>
-  <Versions />
+  <header class="app-header">
+    <strong>{{ APP_NAME }}</strong>
+    <span class="muted">主界面框架将在 Step 4 接入</span>
+  </header>
+  <IpcConsole />
 </template>
+
+<style scoped>
+.app-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+.muted {
+  color: #6b7280;
+  font-size: 12px;
+}
+</style>

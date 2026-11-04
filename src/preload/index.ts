@@ -1,22 +1,25 @@
 import { contextBridge } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
+import type { Api } from './api/types'
+import { appApi } from './api/app'
+import { dialogApi } from './api/dialog'
+import { logApi } from './api/log'
+import { storeApi } from './api/store'
 
-// Custom APIs for renderer
-const api = {}
+// satisfies 让实现与 Api 在编译期对齐：少一个方法或返回类型不符都会直接报错，
+// 同时保留字面量推断，不像 `: Api` 那样把具体类型抹平。
+const api = {
+  app: appApi,
+  store: storeApi,
+  dialog: dialogApi,
+  log: logApi
+} satisfies Api
 
-// Use `contextBridge` APIs to expose Electron APIs to
-// renderer only if context isolation is enabled, otherwise
-// just add to the DOM global.
 if (process.contextIsolated) {
-  try {
-    contextBridge.exposeInMainWorld('electron', electronAPI)
-    contextBridge.exposeInMainWorld('api', api)
-  } catch (error) {
-    console.error(error)
-  }
+  contextBridge.exposeInMainWorld('electron', electronAPI)
+  contextBridge.exposeInMainWorld('api', api)
 } else {
-  // @ts-ignore (define in dts)
-  window.electron = electronAPI
-  // @ts-ignore (define in dts)
-  window.api = api
+  // 隔离一旦关掉，contextBridge 就不生效；此处绝不退化成直接挂 window.xxx，
+  // 那等于把 Node 能力裸暴露给页面。窗口预设里 contextIsolation 恒为 true。
+  console.error('[preload] contextIsolation 未开启，拒绝挂载宿主能力')
 }
