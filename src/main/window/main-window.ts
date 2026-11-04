@@ -17,7 +17,9 @@ export function createMainWindow(): BrowserWindow {
     // 先建后显：配合 backgroundColor 消掉首帧白闪，不需要额外的 splash 窗口
     show: false,
     backgroundColor: '#f4f5f7',
-    title: is.dev ? `${APP_NAME} [DEV]` : APP_NAME,
+    // 只是加载期的占位标题：页面 <title> 一旦生效就会覆盖它（实测确认），
+    // 所以路由标题与环境标记由渲染进程设置，见 renderer/src/router/guards.ts。
+    title: APP_NAME,
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
