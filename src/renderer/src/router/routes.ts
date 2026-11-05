@@ -16,32 +16,8 @@ export const routes: RouteRecordRaw[] = [
       {
         path: LANDING_PATH.slice(1),
         name: LANDING_ROUTE_NAME,
-        component: () => import('@renderer/views/demo/popup-lab.vue'),
-        meta: { title: LANDING_TITLE, group: '工作台' }
-      },
-      {
-        path: 'system/user',
-        name: 'system-user',
         component: () => import('@renderer/views/system/user/index.vue'),
-        meta: { title: '用户管理', group: '管理' }
-      },
-      {
-        path: 'system/role',
-        name: 'system-role',
-        component: () => import('@renderer/views/system/role/index.vue'),
-        meta: { title: '角色管理', group: '管理' }
-      },
-      {
-        path: 'system/settings',
-        name: 'system-settings',
-        component: () => import('@renderer/views/system/settings-view.vue'),
-        meta: { title: '系统设置', group: '管理' }
-      },
-      {
-        path: 'dev/ipc',
-        name: 'dev-ipc',
-        component: () => import('@renderer/views/dev/ipc-console.vue'),
-        meta: { title: 'IPC 基座', hidden: true }
+        meta: { title: LANDING_TITLE, group: '管理' }
       }
     ]
   },
@@ -56,18 +32,6 @@ export const routes: RouteRecordRaw[] = [
     name: 'splash',
     component: () => import('@renderer/views/startup/splash-view.vue'),
     meta: { title: '启动', window: true, hidden: true }
-  },
-  {
-    path: '/w/user-form',
-    name: 'w-user-form',
-    component: () => import('@renderer/windows/user-form-window.vue'),
-    meta: { title: '用户表单', window: true, hidden: true }
-  },
-  {
-    path: '/w/export-task',
-    name: 'w-export-task',
-    component: () => import('@renderer/windows/export-task-window.vue'),
-    meta: { title: '导出任务', window: true, hidden: true }
   },
   {
     path: '/:pathMatch(.*)*',

@@ -1,36 +1,18 @@
-import type { UserDTO } from '../types/user'
-
 /**
- * 独立窗口的类型契约。新增一种窗口只需三步：
+ * 独立窗口的类型契约。模板默认不内置业务窗口，地基保留；新增一种窗口只需三步：
  * 1) 这里加一条 kind 与 props/result；
  * 2) main/window/presets.ts 加一条外观；
  * 3) renderer/src/windows 加一个页面并在路由挂 /w/:kind。
  * 业务逻辑不用重写——表单主体本就不感知容器。
  */
-export type WindowKind = 'user-form' | 'export-task'
+export type WindowKind = never
 
 /** 独立窗口面：登录窗与启动页不在 manager 的注册表里，但同样需要身份判断。 */
 export type WindowSurface = WindowKind | 'login' | 'splash'
 
-export interface ExportTaskProps {
-  /** 需要导出的行标识；只传 DTO，不要传表格实例 */
-  ids: number[]
-}
+export type WindowPropsMap = Record<never, never>
 
-export interface ExportTaskResult {
-  savedPath: string
-  rows: number
-}
-
-export interface WindowPropsMap {
-  'user-form': UserDTO | undefined
-  'export-task': ExportTaskProps
-}
-
-export type WindowResultMap = {
-  'user-form': UserDTO
-  'export-task': ExportTaskResult
-}
+export type WindowResultMap = Record<never, never>
 
 export interface WindowSelf {
   windowId: string

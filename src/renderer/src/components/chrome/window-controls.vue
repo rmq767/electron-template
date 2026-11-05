@@ -133,6 +133,6 @@ function closeSelf(): void {
 
 .window-control--close:hover {
   background: var(--app-danger-solid);
-  color: var(--app-chrome-hover-ink);
+  color: var(--app-brand-ink);
 }
 </style>

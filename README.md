@@ -3,8 +3,13 @@
 Electron + Vue 3 + Element Plus + vxe-table + Vite + Vue Router + Pinia + TypeScript 的桌面端快速开发模板。
 目标不是"演示能跑"，而是**拉下来就能写业务、并且知道每个决定为什么这么做**。
 
-默认外观是桌面软件外壳：无系统边框的自定义标题栏、深色侧栏、编辑器式标签栏与紧凑的数据面板，
+默认外观是桌面软件外壳：无系统边框的自定义标题栏、随主题切换的标题栏与侧栏、编辑器式标签栏与紧凑的数据面板，
 **不是网页后台模板**。品牌名、副标题、图标与 App ID 全部由 [.env](.env) 驱动（默认 `Aster`）。
+
+主窗口默认只内置**用户管理**（搜索 / 分页 / 新增 / 编辑 / 删除）。此前的 demo 页、角色管理、
+系统设置与 IPC 调试页已移除；用户表单、导出任务两个示例独立窗口也已删除，
+但 `main/window` 的 manager / registry / presets 地基保留，按「弹窗该用 dialog 还是 window」
+一节的配方可以随时加回业务窗口。模板默认没有内置业务独立窗口，presets 为空。
 
 ---
 
@@ -94,7 +99,10 @@ src/shared    共用层    纯类型 + 常量 + 无副作用函数，不得 impo
 **这是本模板最该先读的一页** → [docs/window-vs-dialog.md](docs/window-vs-dialog.md)
 
 一句话：**默认用 dialog**，只有命中"并排操作 / 独立任务栏条目 / 长任务跨路由存活 / 崩溃隔离 / 独立渲染上下文"这 5 条之一才用独立窗口。
-当前模板**同时只允许一个业务独立窗口**，第二个 open 返回 `busy`；并行多开列在后续需求。
+当前模板**保留独立窗口地基但不内置业务窗口**：新增窗口 = `shared/ipc/window-spec.ts` 一条契约
+
+- `main/window/presets.ts` 一条外观 + `/w/:kind` 路由与页面；同时只允许一个业务独立窗口，
+  第二个 open 返回 `busy`，并行多开列在后续需求。
 
 ---
 
@@ -136,6 +144,8 @@ preload 与渲染层，业务代码只从 `src/shared/constants/app.ts` 读。`e
   ESLint 的 `vue/component-definition-name-casing` 已强制。
 - **窗口外观**：主窗口、登录窗、启动页与独立窗口都使用无系统边框 + 自定义标题栏；
   最小化 / 最大化 / 关闭与窗口状态通过 `window:*` IPC 触达主进程。
+- **主题**：亮色模式标题栏与侧栏为浅色（`titlebar: #f7f8fa`、`sidebar: #fbfcfd`），
+  暗色模式整体反转；切换只改 `html.dark`，不需要重建窗口。
 - **登录 / 启动**：登录窗与启动页共用 `window-brand-bar` 与 `.auth-window` 品牌背景；
   启动页只在无需登录的路径出现，等待主窗口 `app:ui-ready` 后退场。
 

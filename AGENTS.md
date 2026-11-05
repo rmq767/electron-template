@@ -15,7 +15,7 @@
 
 1. **clone 即编译**：不得引入私有 `@platform/*` git 依赖；第三方依赖必须能在 `pnpm install` 后直接编译。受控 UI 依赖为 Element Plus + vxe-table / vxe-pc-ui，新增重依赖前先验证安装与构建。
 2. **默认品牌只是示例**：`.env` 里的 `APP_NAME` 等值可以被任意替换；代码、组件、路由里**禁止写死品牌名、App ID、图标文件名**。
-3. **桌面软件，不是网页后台**：任何界面改动都要保持无边框标题栏、深色侧栏、紧凑控件、桌面交互；不要回到大 Header + 大卡片的后台模板风格。
+3. **桌面软件，不是网页后台**：任何界面改动都要保持无边框标题栏、随主题切换的标题栏与侧栏、紧凑控件、桌面交互；不要回到大 Header + 大卡片的后台模板风格。
 4. **登录目前只有 mock**：`admin / 123456`。没有明确的真实鉴权需求前，不虚构后端接口、不接真实登录。
 5. **模板必须保持可验证**：typecheck、lint、build 是底线；UI 改动还必须在真实 Electron 窗口里点过。
 
@@ -75,7 +75,8 @@ src/renderer   普通 Vue 应用；禁 Node/electron，只认 window.api
 
 - **默认用 dialog**。只有命中 [决策表](docs/window-vs-dialog.md) 的 5 条触发条件之一，才升级为独立窗口；一条都不命中就禁止用 window。
 - **同一时间只允许一个业务独立窗口**：同 kind 再次 `open` 会聚焦并推送新参数；不同 kind 返回 `{ ok:false, reason:'busy' }`。多窗口并行列入范围收缩，不要私自放开。
-- 新增业务窗口 = 一条 `presets.ts` + 一条 `/w/:kind` 路由 + 一条 props/result 契约 + `WindowGate`。不建 BaseWindow 继承树。
+- **模板默认不内置业务独立窗口**：`window-spec.ts` 的 `WindowKind` 为空、`presets.ts` 为空对象，但 manager / registry / lifecycle / `WindowGate` / `/w/:kind` 机制必须保留。不要因为「干净」把窗口地基删掉。
+- 新增业务窗口 = 一条 `window-spec.ts` 契约 + 一条 `presets.ts` + 一条 `/w/:kind` 路由 + 页面。不建 BaseWindow 继承树。
 - 登录窗与启动页都不是业务窗口，**不进入 `window/registry`**：
   - 需要登录（`APP_FEATURE_LOGIN=true` 且无会话）→ 登录窗本身作为启动面
   - 无需登录 / 已有会话 → 启动页等待主窗口 `app:ui-ready`，达到 `APP_SPLASH_MIN_MS` 后退场；主窗在启动页退场前只加载、不 show，启动阶段任意时刻只允许一个窗口可见
@@ -104,6 +105,8 @@ src/renderer   普通 Vue 应用；禁 Node/electron，只认 window.api
 
 ## 7. 界面系统
 
+- **内置页面只有用户管理**：主窗口侧栏与路由只保留 `system/user`；demo、角色、设置、IPC 调试页与示例独立窗口已删除，不要恢复。新增页面按列表页组件体系添加。
+- **标题栏与侧栏跟随主题**：亮色模式是浅色（`titlebar: #f7f8fa`、`sidebar: #fbfcfd`），暗色模式才用深色；不要写死深色，也不要在组件里单独判断主题改色。
 - 设计令牌只在 [styles/index.scss](src/renderer/src/styles/index.scss)；Element Plus 覆盖只在 [styles/element-theme.scss](src/renderer/src/styles/element-theme.scss)。
 - 样式统一用 SCSS：组件写 `<style scoped lang="scss">`，ESLint 已强制；新增颜色/阴影先加 `--app-*` 令牌，light / dark 两侧同时补齐。
 - **禁止在组件里写 `:deep(.el-dialog__header)` 这类局部 Element 覆盖**；要改就改主题文件，让全项目生效。

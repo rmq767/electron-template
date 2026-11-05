@@ -12,6 +12,9 @@
 >
 > **当前模板同时只允许一个业务独立窗口。** 第二个 open 会返回
 > `{ ok: false, reason: 'busy' }`；并行多开列入后续需求。
+>
+> **模板默认不内置业务独立窗口**：`window-spec.ts` 的 `WindowKind` 与 `presets.ts`
+> 都是空的，manager / registry / `WindowGate` 地基保留；下面的配方用于新增窗口。
 
 记忆口诀：**同屏叠层用 dialog，脱离同屏用 window**；
 **用户可能想同时看两张表 → window**。
@@ -80,8 +83,8 @@
 升级动作只有一步：给这个表单加一条 window preset + 一条 `/w/xxx` 路由，
 把 `<UserForm :model @done @cancel>` 原样搬过去。
 **因为表单主体组件被约定为不 import 弹层、不感知容器，所以不重写任何业务逻辑。**
-模板里 `views/system/user/components/user-form.vue` 同时被 `my-dialog`（经 `form-dialog`）、
-`my-drawer` 和独立窗口 `windows/user-form-window.vue` 三处复用，就是这个约定的现成证据。
+模板里 `views/system/user/components/user-form.vue` 现在通过 `form-dialog` 装进 `my-dialog`；
+需要独立窗口时，把同一个组件原样搬进 `/w/xxx` 页面即可，不需要改表单本身。
 
 **2. 长任务**
 
@@ -105,5 +108,5 @@
 `my-dialog`（表单/详情）→ `my-drawer`（超长内容、侧向参照）→ `confirmAction`（是/否）
 → window（仅命中触发条件）。
 
-在应用里可直接对照操作：**弹层与窗口页**，
-四种形态用的是同一个表单，可以当场对比打开速度、状态是否共享、以及关掉后拿到什么。
+模板瘦身后不再内置「弹层与窗口」演示页。当前用户管理页只演示 dialog 形态；
+需要对比时，按上面的配方加一个 `/w/xxx` 页面，再用同一个表单放进 dialog 与独立窗口即可。

@@ -8,7 +8,7 @@ import type {
   WindowPayload
 } from '@shared/ipc/window-spec'
 import { logger } from '@main/log/logger'
-import { windowPresets } from './presets'
+import { windowPresets, type WindowPreset } from './presets'
 import { attachWindowLifecycle } from './lifecycle'
 import { attachWindowChrome } from './chrome'
 import { resolveAppIcon } from './app-icon'
@@ -35,8 +35,10 @@ export function openWindow(
   options?: OpenWindowOptions,
   openerContentsId?: number
 ): Promise<OpenOutcome<unknown>> {
-  const preset = windowPresets[kind]
-  if (!preset) throw new Error(`[window] 未知窗口类型：${kind}`)
+  // 空窗口目录时 WindowKind 为 never；按字符串查表并收敛成可选类型，
+  // 新增窗口后这一段不用再改。
+  const preset = (windowPresets as Partial<Record<string, WindowPreset>>)[String(kind)]
+  if (!preset) throw new Error(`[window] 未知窗口类型：${String(kind)}`)
 
   // 当前模板只允许一个业务独立窗口：
   // 同 kind 聚焦并推送新参数；不同 kind 直接拒绝，避免多窗口状态与焦点成本。

@@ -2,16 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { Component } from 'vue'
-import {
-  ChatSquare,
-  CopyDocument,
-  Expand,
-  Fold,
-  House,
-  Setting,
-  User,
-  UserFilled
-} from '@element-plus/icons-vue'
+import { Expand, Fold, User } from '@element-plus/icons-vue'
 import { useAppStore } from '@renderer/stores/app'
 import { menuRoutes } from '@renderer/router/routes'
 
@@ -21,12 +12,7 @@ const router = useRouter()
 const version = ref('')
 
 const icons: Record<string, Component> = {
-  home: House,
-  'demo-dialog': ChatSquare,
-  'demo-window': CopyDocument,
-  'system-user': User,
-  'system-role': UserFilled,
-  'system-settings': Setting
+  'system-user': User
 }
 
 const groups = computed(() => {

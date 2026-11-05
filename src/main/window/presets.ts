@@ -2,8 +2,8 @@ import type { WindowKind } from '@shared/ipc/window-spec'
 
 /**
  * 窗口目录：每种独立窗口的外观与行为。
- * 新增窗口 = 加一条 preset + 一条 /w/:kind 路由 + 一条 props/result 契约。
- * 不建 BaseWindow 继承树。
+ * 模板默认不内置业务窗口，地基保留；新增窗口 = 加一条 preset + 一条 /w/:kind 路由
+ * + 一条 props/result 契约。不建 BaseWindow 继承树。
  */
 export interface WindowPreset {
   title: string
@@ -19,21 +19,4 @@ export interface WindowPreset {
   skipTaskbar: boolean
 }
 
-export const windowPresets: Record<WindowKind, WindowPreset> = {
-  'user-form': {
-    title: '用户表单',
-    width: 720,
-    height: 560,
-    modal: false,
-    resizable: true,
-    skipTaskbar: true
-  },
-  'export-task': {
-    title: '导出任务',
-    width: 560,
-    height: 420,
-    modal: false,
-    resizable: false,
-    skipTaskbar: true
-  }
-}
+export const windowPresets: Record<WindowKind, WindowPreset> = {}
