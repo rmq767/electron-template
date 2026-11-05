@@ -39,6 +39,7 @@ pnpm dev         # 起窗 + 三端热更（含主进程，见下文 -w）
 | `pnpm build`                | clean + typecheck + 三端构建，产物在 `out/`                                                                                       |
 | `pnpm clean`                | 只清空 `out/`，不碰 `release/` 与用户数据                                                                                         |
 | `pnpm build:win`            | 上一步 + electron-builder 出 NSIS 安装包与 portable                                                                               |
+| `pnpm build:icons`          | 从 `resources/<APP_ICON>` 生成 `build/icon.ico` / `icon.icns` / `icon.png`，换图标后执行一次即可                                  |
 | `pnpm build:unpack`         | 只出 `win-unpacked/`，验证 file:// 加载最快（默认在 `release/`）                                                                  |
 | `pnpm typecheck`            | `tsc -p tsconfig.node.json` + `vue-tsc -p tsconfig.web.json`，两套 lib 分开                                                       |
 | `pnpm lint` / `pnpm format` | ESLint 10 flat config / Prettier                                                                                                  |
@@ -206,6 +207,10 @@ preload 与渲染层，业务代码只从 `src/shared/constants/app.ts` 读。`e
 ---
 
 ## 发布与自动更新
+
+打包的完整配置（应用名、版本、App ID、图标、输出目录、安装行为、签名与排障）
+见 **[docs/packaging.md](docs/packaging.md)**。换图标后先执行 `pnpm build:icons`，
+它会从 `resources/<APP_ICON>` 生成 `build/icon.ico` / `build/icon.icns` / `build/icon.png`。
 
 `pnpm build:win` 产出 NSIS 安装包（perUser，免 UAC、可换安装目录）与 portable 两种产物，默认在 `release/`。
 

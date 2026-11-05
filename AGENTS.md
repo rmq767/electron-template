@@ -8,6 +8,7 @@
 - 用法、脚本、环境变量 → [README.md](README.md)
 - 架构、契约、实测记录、范围收缩 → [DESIGN.md](DESIGN.md)
 - dialog / window 选型 → [docs/window-vs-dialog.md](docs/window-vs-dialog.md)
+- 打包、图标、名称、版本、安装包与签名 → [docs/packaging.md](docs/packaging.md)
 
 ---
 
