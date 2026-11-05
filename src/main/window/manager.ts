@@ -38,16 +38,22 @@ export function openWindow(
   const preset = windowPresets[kind]
   if (!preset) throw new Error(`[window] 未知窗口类型：${kind}`)
 
-  const existing = preset.singleton ? registry.findByKind(kind) : undefined
-  if (existing) {
-    if (!existing.win.isDestroyed()) {
-      // 复用单例：聚焦并把新参数推进去，调用方的 await 仍然在同一处关闭时兑现
-      existing.win.focus()
-      pushProps(existing.windowId, props)
-      logger.info(`复用单例窗口 ${existing.windowId}`)
-      return new Promise((resolve) => registry.enqueueSetter(existing.windowId, resolve))
+  // 当前模板只允许一个业务独立窗口：
+  // 同 kind 聚焦并推送新参数；不同 kind 直接拒绝，避免多窗口状态与焦点成本。
+  const active = registry.findActive()
+  if (active) {
+    active.win.focus()
+    if (active.kind === kind) {
+      pushProps(active.windowId, props)
+      logger.info(`复用独立窗口 ${active.windowId}`)
+      return new Promise((resolve) => registry.enqueueSetter(active.windowId, resolve))
     }
-    registry.remove(existing.windowId)
+    logger.info(`已有独立窗口 ${active.windowId}，拒绝打开 ${kind}`)
+    return Promise.resolve({
+      ok: false,
+      reason: 'busy',
+      message: `已有独立窗口打开：${active.kind}`
+    })
   }
 
   const windowId = registry.createWindowId(kind)

@@ -1,6 +1,6 @@
 # Electron Desktop Template
 
-Electron + Vue 3 + Element Plus + Vite + Vue Router + Pinia + TypeScript 的桌面端快速开发模板。
+Electron + Vue 3 + Element Plus + vxe-table + Vite + Vue Router + Pinia + TypeScript 的桌面端快速开发模板。
 目标不是"演示能跑"，而是**拉下来就能写业务、并且知道每个决定为什么这么做**。
 
 默认外观是桌面软件外壳：无系统边框的自定义标题栏、深色侧栏、编辑器式标签栏与紧凑的数据面板，
@@ -93,7 +93,8 @@ src/shared    共用层    纯类型 + 常量 + 无副作用函数，不得 impo
 
 **这是本模板最该先读的一页** → [docs/window-vs-dialog.md](docs/window-vs-dialog.md)
 
-一句话：**默认用 dialog**，只有命中"并排操作 / 独立任务栏条目 / 同一表单并行多开 / 长任务跨路由存活 / 崩溃隔离 / 独立渲染上下文"这 6 条之一才用独立窗口。
+一句话：**默认用 dialog**，只有命中"并排操作 / 独立任务栏条目 / 长任务跨路由存活 / 崩溃隔离 / 独立渲染上下文"这 5 条之一才用独立窗口。
+当前模板**同时只允许一个业务独立窗口**，第二个 open 返回 `busy`；并行多开列在后续需求。
 
 ---
 
@@ -137,6 +138,40 @@ preload 与渲染层，业务代码只从 `src/shared/constants/app.ts` 读。`e
   最小化 / 最大化 / 关闭与窗口状态通过 `window:*` IPC 触达主进程。
 - **登录 / 启动**：登录窗与启动页共用 `window-brand-bar` 与 `.auth-window` 品牌背景；
   启动页只在无需登录的路径出现，等待主窗口 `app:ui-ready` 后退场。
+
+### 列表页组件
+
+`my-search` / `my-table` / `my-pagination` / `my-dialog` / `my-drawer` 已在 `main.ts` 全局注册，
+配合 `useSearchFilter` + `useListPage`，新列表页按固定组合写：
+
+```vue
+<my-search :filters="filters" :form-data="formData" @search="onSearch" @reset="onReset">
+  <el-button type="primary" @click="handleAdd">新增</el-button>
+</my-search>
+
+<section class="panel panel--table">
+  <my-table :columns="columns" :data="rows" :seq="true" :row-config="{ keyField: 'id' }">
+    <template #action="{ row }">
+      <el-button size="small" text type="primary" @click="handleEdit(row)">编辑</el-button>
+    </template>
+  </my-table>
+  <my-pagination
+    v-model:page="pagination.pageNum"
+    v-model:size="pagination.pageSize"
+    :total="total"
+    @pagination="onPagination"
+  />
+</section>
+
+<form-dialog ref="formDialogRef" @success="handleSaved" />
+```
+
+- 列表页参考 [views/system/user/index.vue](src/renderer/src/views/system/user/index.vue)；
+  列配置放同目录 `index.ts`，表单弹窗放 `components/form-dialog.vue`。
+- `form-dialog` 暴露 `open(FormType.ADD | FormType.EDIT, row)`，保存后 `emit('success', value)`，
+  页面只负责更新数据与刷新。
+- `my-dialog` / `my-drawer` 只负责外观与默认契约（`v-model` + `title` + `footer` 插槽 + `$attrs`），
+  底部按钮由调用方放入 `footer` 插槽。
 
 > 踩过的坑：`ImportMetaEnv` 的类型增强**不能**和 `/// <reference types="vite/client" />` 写在同一个文件里，
 > 否则 CSS 副作用导入与 `import.meta.env` 会一起失效。本项目把增强单独放在
@@ -208,6 +243,7 @@ pnpm build:win
 - 未签名：`Get-AuthenticodeSignature ...setup.exe` 返回 `NotSigned`；这是没有证书时的预期结果。
 - 中文项目路径是**输出目录移动阶段**的实际阻塞点，不是下载阶段；`BUILD_OUTPUT_DIR` 已作为正式逃生口。
 - 打包前的 `pnpm clean` 只清 `out/`；`release*/`、`dist*/` 已从 asar 排除。
+- 引入 vxe-table 后**尚未重新打包测量** `app.asar` 体积；本次 `pnpm build` 通过，renderer 产物约 3.34MB JS + 1.10MB CSS，后续打包装包时需要重新核对。
 
 ---
 
@@ -222,6 +258,8 @@ pnpm build:win
 | Vue Router    | 5.4.0     |                                                                                                                                                   |
 | Pinia         | 4.1.0     |                                                                                                                                                   |
 | Element Plus  | 2.14.7    | 全量引入；主题覆盖只在 `styles/element-theme.scss` 一处                                                                                           |
+| vxe-table     | 4.23.14   | 仅用于渲染层 `my-table`；主题变量在 `element-theme.scss` 映射到 `--app-*`                                                                         |
+| vxe-pc-ui     | 4.20.36   | vxe-table 的基础组件与样式依赖                                                                                                                    |
 | Sass          | 1.107.1   | 仅作 SCSS 预处理；Vite 内置支持，无额外构建插件                                                                                                   |
 | TypeScript    | **6.0.3** | 官方脚手架与 vue-tsc 3.3.14 的当前稳定线。7.0.2 实测与 `vue-tsc` 硬冲突（`ERR_PACKAGE_PATH_NOT_EXPORTED`），已在回退阶梯里，等 vue-tsc 适配后可升 |
 
@@ -229,5 +267,5 @@ pnpm build:win
 
 ## 还没做的（有意为之，不是遗漏）
 
-插件化/微内核抽象、跨窗口状态同步层、i18n、测试基座、托盘常驻与开机自启、云端错误上报、`my-table`/`my-search` 等重组件移植。
+插件化/微内核抽象、跨窗口状态同步层、多业务窗口并行、i18n、测试基座、托盘常驻与开机自启、云端错误上报、图表/字典等后端耦合组件。
 理由都写在 [DESIGN.md](DESIGN.md) 的"范围收缩"一节。

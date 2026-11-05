@@ -1,4 +1,5 @@
 import type { RouteRecordRaw } from 'vue-router'
+import { LANDING_PATH, LANDING_ROUTE_NAME, LANDING_TITLE } from '@shared/constants/navigation'
 import MainFrame from '@renderer/layouts/main-frame/main-frame.vue'
 
 /**
@@ -10,36 +11,24 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/',
     component: MainFrame,
-    redirect: '/home',
+    redirect: LANDING_PATH,
     children: [
       {
-        path: 'home',
-        name: 'home',
-        component: () => import('@renderer/views/home/home-view.vue'),
-        meta: { title: '概览', group: '工作台' }
-      },
-      {
-        path: 'demo/dialog',
-        name: 'demo-dialog',
-        component: () => import('@renderer/views/demo/dialog-lab.vue'),
-        meta: { title: '弹层示例', group: '工作台' }
-      },
-      {
-        path: 'demo/window',
-        name: 'demo-window',
-        component: () => import('@renderer/views/demo/window-lab.vue'),
-        meta: { title: '独立窗口示例', group: '工作台' }
+        path: LANDING_PATH.slice(1),
+        name: LANDING_ROUTE_NAME,
+        component: () => import('@renderer/views/demo/popup-lab.vue'),
+        meta: { title: LANDING_TITLE, group: '工作台' }
       },
       {
         path: 'system/user',
         name: 'system-user',
-        component: () => import('@renderer/views/system/user-view.vue'),
+        component: () => import('@renderer/views/system/user/index.vue'),
         meta: { title: '用户管理', group: '管理' }
       },
       {
         path: 'system/role',
         name: 'system-role',
-        component: () => import('@renderer/views/system/role-view.vue'),
+        component: () => import('@renderer/views/system/role/index.vue'),
         meta: { title: '角色管理', group: '管理' }
       },
       {

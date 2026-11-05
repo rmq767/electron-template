@@ -1,6 +1,7 @@
 import { join } from 'path'
 import { BrowserWindow } from 'electron'
 import { APP_NAME } from '@shared/constants/app'
+import { LANDING_PATH } from '@shared/constants/navigation'
 import { rendererEntry } from './entry'
 import { attachWindowChrome } from './chrome'
 import { resolveAppIcon } from './app-icon'
@@ -37,7 +38,7 @@ export function createMainWindow(): BrowserWindow {
   attachWindowChrome(mainWindow)
 
   // 何时 show 由 app-flow 决定：登录/启动页退场前，主窗口只加载不显示。
-  void mainWindow.loadURL(rendererEntry('/home'))
+  void mainWindow.loadURL(rendererEntry(LANDING_PATH))
 
   return mainWindow
 }

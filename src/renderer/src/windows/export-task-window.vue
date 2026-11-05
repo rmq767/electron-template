@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onScopeDispose, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import WindowGate from '@renderer/components/base/window-gate.vue'
+import WindowGate from '@renderer/components/window-gate/index.vue'
 import WindowShell from '@renderer/components/chrome/window-shell.vue'
 import { useWindowPayload } from '@renderer/composables/useWindowPayload'
 import type { ExportTaskProps, ExportTaskResult } from '@shared/ipc/window-spec'

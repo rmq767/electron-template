@@ -60,6 +60,33 @@ html.dark {
   --el-overlay-color-lighter: var(--app-mask);
   --el-mask-color: var(--app-mask);
   --el-mask-color-extra-light: var(--app-mask-soft);
+
+  /* vxe-table：所有颜色都映射到 --app-*，亮暗主题自动跟随 */
+  --vxe-ui-font-family: var(--app-font-sans);
+  --vxe-ui-font-size-default: 13px;
+  --vxe-ui-font-size-medium: 13px;
+  --vxe-ui-font-size-small: 12px;
+  --vxe-ui-border-radius: 6px;
+  --vxe-ui-font-color: var(--app-ink-soft);
+  --vxe-ui-font-primary-color: var(--app-accent);
+  --vxe-ui-layout-background-color: var(--app-surface);
+  --vxe-ui-table-row-height-default: 40px;
+  --vxe-ui-table-row-line-height: 22px;
+  --vxe-ui-table-cell-padding-default: 8px;
+  --vxe-ui-table-header-font-weight: 600;
+  --vxe-ui-table-header-background-color: var(--app-surface-muted);
+  --vxe-ui-table-header-font-color: var(--app-muted);
+  --vxe-ui-table-border-color: var(--app-border);
+  --vxe-ui-table-row-hover-background-color: var(--app-surface-hover);
+  --vxe-ui-table-row-current-background-color: var(--app-accent-soft);
+  --vxe-ui-table-row-checkbox-checked-background-color: var(--app-accent-soft);
+  --vxe-ui-table-row-hover-checkbox-checked-background-color: color-mix(
+    in srgb,
+    var(--app-accent-soft) 78%,
+    var(--app-surface-hover)
+  );
+  --vxe-ui-table-footer-background-color: var(--app-surface-muted);
+  --vxe-ui-table-cell-placeholder-color: var(--app-muted);
 }
 
 :root {
@@ -264,6 +291,57 @@ html.dark {
 
 .el-table__inner-wrapper::before {
   background-color: var(--app-border);
+}
+
+/* ---- vxe-table：桌面紧凑基线，颜色由上面的 --vxe-ui-* 变量控制 ---- */
+.vxe-table {
+  font-size: 13px;
+}
+
+.vxe-table .vxe-header--column {
+  height: var(--vxe-ui-table-row-height-default);
+  color: var(--app-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.vxe-table .vxe-body--column {
+  height: var(--vxe-ui-table-row-height-default);
+}
+
+.vxe-table .vxe-cell {
+  line-height: 1.5;
+}
+
+.app-table .vxe-table--border-line {
+  border-color: var(--app-border);
+}
+
+/* ---- 列表页搜索条：Element 表单内部的尺寸统一收敛在这里 ---- */
+.app-search .el-form-item {
+  margin-right: 14px;
+  margin-bottom: 10px;
+}
+
+.app-search .el-form-item:last-child {
+  margin-right: 0;
+}
+
+.app-search .el-input,
+.app-search .el-select {
+  width: 172px;
+}
+
+.app-search .el-date-editor {
+  width: 172px;
+}
+
+.app-search .el-date-editor--daterange {
+  width: 248px;
+}
+
+.app-search__actions .el-button + .el-button {
+  margin-left: 0;
 }
 
 /* ---- 标签 ---- */

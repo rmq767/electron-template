@@ -3,6 +3,7 @@ import { reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { APP_NAME, APP_TAGLINE } from '@shared/constants/app'
+import { LANDING_PATH } from '@shared/constants/navigation'
 import { env } from '@renderer/env'
 import { useAuthStore } from '@renderer/stores/auth'
 import BrandMark from '@renderer/components/chrome/brand-mark.vue'
@@ -26,7 +27,8 @@ async function finishLogin(): Promise<void> {
     if (window.api?.app?.completeLogin) {
       await window.api.app.completeLogin()
     } else {
-      const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/home'
+      const redirect =
+        typeof route.query.redirect === 'string' ? route.query.redirect : LANDING_PATH
       await router.replace(redirect)
     }
   } catch (err) {

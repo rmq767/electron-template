@@ -81,6 +81,12 @@ importers:
       vue-tsc:
         specifier: ^3.3.14
         version: 3.3.14(typescript@6.0.3)
+      vxe-pc-ui:
+        specifier: ^4.20.36
+        version: 4.20.36(vue@3.5.44(typescript@6.0.3))
+      vxe-table:
+        specifier: ^4.23.14
+        version: 4.23.14
 
 packages:
 
@@ -782,6 +788,11 @@ packages:
     peerDependencies:
       vue: ^3.5.0
 
+  '@vxe-ui/core@4.5.6':
+    resolution: {integrity: sha512-YgOCZSjks6HObwG5B6Rumeilhql2C+yyhSw4H+fyqDMJzT1RmbgLzMvA5n6IpycyN75N9DBKGEIWZfI5GDuoNw==}
+    peerDependencies:
+      vue: ^3.2.0
+
   '@xmldom/xmldom@0.8.15':
     resolution: {integrity: sha512-/5NV/vDALVFDXgLmfsy9TRCBlKwO2LNBFzpzvb9iIj+jR+eSc6DLYYvVOdivT/jm7MtU6TebYuRmzEOI7w40UA==}
     engines: {node: '>=10.0.0'}
@@ -1077,6 +1088,9 @@ packages:
 
   dmg-builder@26.18.0:
     resolution: {integrity: sha512-ozCGC54wi2C1RkS2v69y9lQxvoQ1Coh+iT8CmWiyY8y1ZuOKVvuNson2Hd+HEOs9+EZNNsOBbzKgQZ4SNqWd0w==}
+
+  dom-zindex@1.0.8:
+    resolution: {integrity: sha512-n6UB0BU5pltbvMWNu3zZqnLO35uFvOjTBO/s2GiPbdnfhyVGYLhLxynou/B2QSQEPJR4d398/0jbUZHLNiOmfA==}
 
   dotenv-expand@11.0.7:
     resolution: {integrity: sha512-zIHwmZPRshsCdpMDyVsqGmgyP0yT8GAgXUnkdAoJisxvf33k7yO6OuoKmcTGuXPWSsm8Oh88nZicRLA9Y0rUeA==}
@@ -2354,6 +2368,12 @@ packages:
       typescript:
         optional: true
 
+  vxe-pc-ui@4.20.36:
+    resolution: {integrity: sha512-DPlGoMMHXXe/zvynjgsL57B5Vvpb+0haOHRkRsxwZ2V873ig7jH7PokZtlZvECnJ2rWOfdQryAXam55VhFTwEA==}
+
+  vxe-table@4.23.14:
+    resolution: {integrity: sha512-lmYTgsnDLOujuB4HhKZQVYsCniMyPlWaK5Zy118lEqwGM6dAnd25FWdngyP/uUj3PKV1776DsbGvD8rwM33qwQ==}
+
   webcrypto-core@1.9.2:
     resolution: {integrity: sha512-gsXecm82UQNlTBURJGuqOWy1Ww08S3kZUcr3aOJS02Pk0xLtkfeUAVC0u0xhgdonFme80edSJUIJyuvL/7250Q==}
 
@@ -2385,6 +2405,9 @@ packages:
 
   wrappy@1.0.2:
     resolution: {integrity: sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==}
+
+  xe-utils@4.1.5:
+    resolution: {integrity: sha512-MDy2CKbwB5K9LY9pRm597Mb4Ah3wbUkFZtJTgsZgJaEeDuRtpQsaQLD+QKGAUBW5NI5y/4thzPT6c05pWPRWnA==}
 
   xml-name-validator@5.0.0:
     resolution: {integrity: sha512-EvGK8EJ3DhaHfbRlETOWAS5pO9MZITeauHKJyb8wyajUfQUenkIg2MvLDTZ4T/TgIcm3HU0TFBgWWboAZ30UHg==}
@@ -3200,6 +3223,12 @@ snapshots:
     dependencies:
       vue: 3.5.44(typescript@6.0.3)
 
+  '@vxe-ui/core@4.5.6(vue@3.5.44(typescript@6.0.3))':
+    dependencies:
+      dom-zindex: 1.0.8
+      vue: 3.5.44(typescript@6.0.3)
+      xe-utils: 4.1.5
+
   '@xmldom/xmldom@0.8.15': {}
 
   abbrev@4.0.0: {}
@@ -3532,6 +3561,8 @@ snapshots:
     transitivePeerDependencies:
       - electron-builder-squirrel-windows
       - supports-color
+
+  dom-zindex@1.0.8: {}
 
   dotenv-expand@11.0.7:
     dependencies:
@@ -4800,6 +4831,14 @@ snapshots:
     optionalDependencies:
       typescript: 6.0.3
 
+  vxe-pc-ui@4.20.36(vue@3.5.44(typescript@6.0.3)):
+    dependencies:
+      '@vxe-ui/core': 4.5.6(vue@3.5.44(typescript@6.0.3))
+    transitivePeerDependencies:
+      - vue
+
+  vxe-table@4.23.14: {}
+
   webcrypto-core@1.9.2:
     dependencies:
       '@peculiar/asn1-schema': 2.11.1
@@ -4831,6 +4870,8 @@ snapshots:
       strip-ansi: 6.0.1
 
   wrappy@1.0.2: {}
+
+  xe-utils@4.1.5: {}
 
   xml-name-validator@5.0.0: {}
 

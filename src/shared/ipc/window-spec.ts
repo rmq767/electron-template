@@ -48,8 +48,11 @@ export interface WindowPayload<K extends WindowKind = WindowKind> {
   props: WindowPropsMap[K]
 }
 
-/** 关闭原因：调用方拿到 ok:false 时用它区分「用户取消」与「真出错」。 */
-export type WindowCloseReason = 'cancelled' | 'closed-by-parent' | 'crashed'
+/**
+ * 失败原因：调用方拿到 ok:false 时用它区分「用户取消」「真出错」与「已有窗口占用」。
+ * 当前模板同时只允许一个业务窗口，第二个 open 会返回 busy。
+ */
+export type WindowCloseReason = 'cancelled' | 'closed-by-parent' | 'crashed' | 'busy'
 
 export type OpenOutcome<T = unknown> =
   { ok: true; data: T } | { ok: false; reason: WindowCloseReason; message?: string }

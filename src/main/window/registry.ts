@@ -8,7 +8,7 @@ export interface WindowEntry {
   /** webContents.id：用它反查窗口，渲染进程无法冒充别的窗口。 */
   contentsId: number
   props: unknown
-  /** 一个窗口可以有多处 await；singleton 复用时后来的调用也挂在这里。 */
+  /** 一个窗口可以有多处 await；同 kind 复用时后来的调用也挂在这里。 */
   pending: ((outcome: OpenOutcome<unknown>) => void)[]
   createdAt: number
 }
@@ -33,8 +33,9 @@ export function findByContents(contentsId: number): WindowEntry | undefined {
   return [...entries.values()].find((entry) => entry.contentsId === contentsId)
 }
 
-export function findByKind(kind: WindowKind): WindowEntry | undefined {
-  return [...entries.values()].find((entry) => entry.kind === kind && !entry.win.isDestroyed())
+/** 单窗口策略：返回当前唯一存活的业务窗口。 */
+export function findActive(): WindowEntry | undefined {
+  return [...entries.values()].find((entry) => !entry.win.isDestroyed())
 }
 
 export function list(): WindowEntry[] {

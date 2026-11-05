@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import { LANDING_PATH } from '@shared/constants/navigation'
 
 defineOptions({ name: 'not-found' })
 
@@ -11,7 +12,7 @@ const router = useRouter()
     <div class="not-found__code">404</div>
     <h1>页面不存在</h1>
     <p>路由未登记，或被窗口上下文守卫拦下。</p>
-    <el-button type="primary" @click="router.replace('/home')">回概览</el-button>
+    <el-button type="primary" @click="router.replace(LANDING_PATH)">回首页</el-button>
   </div>
 </template>
 

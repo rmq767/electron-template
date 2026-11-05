@@ -15,8 +15,6 @@ export interface WindowPreset {
    */
   modal: boolean
   resizable: boolean
-  /** 同名窗口只允许存在一个：再次打开时聚焦并推送新 props。 */
-  singleton: boolean
   /** 子窗口不单独占任务栏条目，语义归主窗口。 */
   skipTaskbar: boolean
 }
@@ -28,7 +26,6 @@ export const windowPresets: Record<WindowKind, WindowPreset> = {
     height: 560,
     modal: false,
     resizable: true,
-    singleton: false,
     skipTaskbar: true
   },
   'export-task': {
@@ -37,7 +34,6 @@ export const windowPresets: Record<WindowKind, WindowPreset> = {
     height: 420,
     modal: false,
     resizable: false,
-    singleton: true,
     skipTaskbar: true
   }
 }

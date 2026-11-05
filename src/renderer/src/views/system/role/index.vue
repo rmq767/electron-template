@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import MyDrawer from '@renderer/components/base/my-drawer.vue'
+import { ref } from 'vue'
+import { columns } from './index'
 
 defineOptions({ name: 'system-role' })
 
@@ -15,13 +15,12 @@ interface RoleDTO {
 const roles = ref<RoleDTO[]>([
   { id: 1, name: '管理员', code: 'admin', users: 3, description: '全部菜单与系统设置' },
   { id: 2, name: '编辑', code: 'editor', users: 12, description: '业务数据读写，不含系统设置' },
-  { id: 3, name: '访客', code: 'viewer', users: 87, description: '只读访问概览与列表' }
+  { id: 3, name: '访客', code: 'viewer', users: 87, description: '只读访问演示与列表' }
 ])
 
+const rowConfig = { keyField: 'id' } as const
 const detail = ref<RoleDTO | null>(null)
 const visible = ref(false)
-
-const totalUsers = computed(() => roles.value.reduce((sum, role) => sum + role.users, 0))
 
 function onInspect(row: RoleDTO): void {
   detail.value = row
@@ -31,50 +30,21 @@ function onInspect(row: RoleDTO): void {
 
 <template>
   <div class="view">
-    <header class="view-head">
-      <div>
-        <p class="view-head__eyebrow">System</p>
-        <h1>角色管理</h1>
-        <p>详情内容较长、需要侧向参照时用抽屉而不是弹窗；这是 dialog 与 drawer 的分工示例。</p>
-      </div>
-      <div class="view-head__actions">
-        <span class="muted">共 {{ totalUsers }} 个授权关系</span>
-      </div>
-    </header>
-
     <section class="panel panel--table">
-      <header class="panel__head">
-        <div>
-          <h2 class="panel__title">角色列表</h2>
-          <p class="panel__desc">内置三个角色，点击详情查看抽屉形态</p>
-        </div>
-        <el-tag size="small" effect="plain" type="info">{{ roles.length }} 个角色</el-tag>
-      </header>
-
-      <div class="panel__body panel__body--flush">
-        <el-table :data="roles" row-key="id">
-          <el-table-column prop="name" label="角色" min-width="140">
-            <template #default="{ row }">
-              <span class="role-name">{{ row.name }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="code" label="编码" min-width="140">
-            <template #default="{ row }">
-              <span class="mono account">{{ row.code }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="description" label="说明" min-width="240" />
-          <el-table-column prop="users" label="人数" width="100" align="right" />
-          <el-table-column label="操作" width="100" fixed="right">
-            <template #default="{ row }">
-              <el-button size="small" text type="primary" @click="onInspect(row)">详情</el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-      </div>
+      <my-table :columns="columns" :data="roles" :row-config="rowConfig">
+        <template #name="{ row }">
+          <span class="role-name">{{ row.name }}</span>
+        </template>
+        <template #code="{ row }">
+          <span class="mono account">{{ row.code }}</span>
+        </template>
+        <template #action="{ row }">
+          <el-button size="small" text type="primary" @click="onInspect(row)">详情</el-button>
+        </template>
+      </my-table>
     </section>
 
-    <my-drawer v-model="visible" title="角色详情" :show-footer="false" :size="460">
+    <my-drawer v-model="visible" title="角色详情" :size="460">
       <div v-if="detail" class="role-detail">
         <div class="role-detail__hero">
           <span class="role-detail__badge">{{ detail.name.charAt(0) }}</span>

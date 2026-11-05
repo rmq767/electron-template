@@ -13,7 +13,7 @@
 
 ## 1. 不可破坏的承诺
 
-1. **clone 即编译**：不得引入私有 `@platform/*` git 依赖、vxe-table 之类会打断安装的重组件。
+1. **clone 即编译**：不得引入私有 `@platform/*` git 依赖；第三方依赖必须能在 `pnpm install` 后直接编译。受控 UI 依赖为 Element Plus + vxe-table / vxe-pc-ui，新增重依赖前先验证安装与构建。
 2. **默认品牌只是示例**：`.env` 里的 `APP_NAME` 等值可以被任意替换；代码、组件、路由里**禁止写死品牌名、App ID、图标文件名**。
 3. **桌面软件，不是网页后台**：任何界面改动都要保持无边框标题栏、深色侧栏、紧凑控件、桌面交互；不要回到大 Header + 大卡片的后台模板风格。
 4. **登录目前只有 mock**：`admin / 123456`。没有明确的真实鉴权需求前，不虚构后端接口、不接真实登录。
@@ -23,7 +23,8 @@
 
 ## 2. 技术版本与依赖
 
-- 以 [package.json](package.json) 为版本真源。主版本线保持：Electron 45、Vite 8、Vue 3.5、Vue Router 5、Pinia 4、Element Plus 2.14、TypeScript 6。
+- 以 [package.json](package.json) 为版本真源。主版本线保持：Electron 45、Vite 8、Vue 3.5、Vue Router 5、Pinia 4、Element Plus 2.14、vxe-table 4.23 / vxe-pc-ui 4.20、TypeScript 6。
+- vxe-table 只服务渲染层的 `my-table`，不得进入 `shared` / `preload` / `main`；表格主题变量统一在 `element-theme.scss` 映射到 `--app-*`。
 - **禁止把 TypeScript 升到 7.x**：`vue-tsc 3.3.x` 实测崩在 `ERR_PACKAGE_PATH_NOT_EXPORTED`；等 vue-tsc 适配后再议。
 - 升级依赖前先问「官方内置 → 主流工程做法 → 第三方库」；能用现有能力解决就不加依赖。
 - 新增依赖要同时满足：官方/主流、与 Electron 45 兼容、不影响 `pnpm install` 后直接编译。
@@ -72,11 +73,12 @@ src/renderer   普通 Vue 应用；禁 Node/electron，只认 window.api
 
 ## 5. 窗口与弹层
 
-- **默认用 dialog**。只有命中 [决策表](docs/window-vs-dialog.md) 的 6 条触发条件之一，才升级为独立窗口；一条都不命中就禁止用 window。
+- **默认用 dialog**。只有命中 [决策表](docs/window-vs-dialog.md) 的 5 条触发条件之一，才升级为独立窗口；一条都不命中就禁止用 window。
+- **同一时间只允许一个业务独立窗口**：同 kind 再次 `open` 会聚焦并推送新参数；不同 kind 返回 `{ ok:false, reason:'busy' }`。多窗口并行列入范围收缩，不要私自放开。
 - 新增业务窗口 = 一条 `presets.ts` + 一条 `/w/:kind` 路由 + 一条 props/result 契约 + `WindowGate`。不建 BaseWindow 继承树。
 - 登录窗与启动页都不是业务窗口，**不进入 `window/registry`**：
   - 需要登录（`APP_FEATURE_LOGIN=true` 且无会话）→ 登录窗本身作为启动面
-  - 无需登录 / 已有会话 → 启动页等待主窗口 `app:ui-ready`，达到 `APP_SPLASH_MIN_MS` 后退场；主窗在启动页退场前只加载、不 show，任意时刻只允许一个窗口可见
+  - 无需登录 / 已有会话 → 启动页等待主窗口 `app:ui-ready`，达到 `APP_SPLASH_MIN_MS` 后退场；主窗在启动页退场前只加载、不 show，启动阶段任意时刻只允许一个窗口可见
   - 登录成功 → `app:complete-login` → 主窗口 `ready-to-show` 后关闭登录窗并显示主窗
   - 退出登录 → `app:show-login` → 登录窗就绪后销毁主窗口并显示登录窗
 - 业务数据只走 `registry + HMR-safe GetPayload`；**URL / argv 只放 kind 与 windowId**，不要把业务 DTO 塞进 hash 或 `additionalArguments`。
@@ -115,6 +117,15 @@ src/renderer   普通 Vue 应用；禁 Node/electron，只认 window.api
 - 桌面控件基准：正文 13px、默认控件 32px、小号 26px、圆角 6/8/12px、标题栏 40px；ElMessage 距顶 52px。改基准必须同步 token 与本文件。
 - 弹层必须 `append-to-body`：`.view` 的入场动画保留 `transform`，会把 `position: fixed` 的遮罩限制在内容区；遮罩要覆盖整个窗口、弹窗在视口居中。
 - 新业务窗口用 `window-shell`，不要自己再写一套标题栏；主窗口专用 `app-titlebar`。
+
+**列表页组件体系**（2026-11 起）：
+
+- 全局组件：`my-search` / `my-table` / `my-pagination` / `my-dialog` / `my-drawer` 在 `main.ts` 注册，类型在 `types/components.d.ts`；页面直接用 kebab-case 标签，不重复 import。
+- 列表页固定组合：`<my-search>`（`filters` 配置 + `formData`）→ `<my-table>`（`columns` 配置 + `field` 插槽）→ `<my-pagination>`（`v-model:page` / `v-model:size`）。
+- 数据与事件：`useSearchFilter` 生成查询表单，`useListPage` 统一搜索/重置/分页/排序，`useCheckboxSelection` 管理跨页多选；不要每页再手写一套。
+- 表单弹窗：每个模块一个 `components/form-dialog.vue`，暴露 `open(FormType.ADD | FormType.EDIT, row)`，保存后 `emit('success', value)`；页面只拿结果刷新列表。
+- `my-dialog` / `my-drawer` 只负责外观与默认契约（`v-model` + `title` + `footer` 插槽 + `$attrs`）；不再提供 `confirm` / `cancel` 事件。页面级弹层状态收在 `form-dialog` 内，不另建弹层状态 hook。
+- 字段类型 `FilterItem`、列配置 `VxeColumn`、`FormType`、`OptionItem` 统一放 `src/renderer/src/types/common.ts`。
 
 ---
 
@@ -175,13 +186,13 @@ pnpm build
 以下内容在当前模板里是**有意不做**，不要因为「看起来更完整」而补：
 
 - 跨窗口状态同步层 / 全局 event bus
+- 多业务窗口并行（当前只允许一个业务独立窗口，第二个 open 返回 busy）
 - `PopupHost` / `GlobalHost` 统一浮层抽象（出现真实需求再落）
 - 自动更新壳（依赖真实分发基建）
 - 代码签名（无证书会让构建失败）
 - 测试基座 / Electron E2E 基建
 - i18n、插件化 / 微内核
 - 托盘常驻 / 开机自启
-- `my-table` / `my-search` 等重组件移植
 - 未点名的分页、浮窗、入口、动画特效
 
 ---

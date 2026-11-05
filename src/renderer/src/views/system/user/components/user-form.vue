@@ -2,6 +2,7 @@
 import { computed, reactive, ref, watch } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import type { UserDTO } from '@shared/types/user'
+import { FormType } from '@renderer/types/common'
 
 defineOptions({ name: 'user-form' })
 
@@ -11,9 +12,9 @@ defineOptions({ name: 'user-form' })
  * 这是「同一个表单从 dialog 平滑升级成 window」的前提。
  * 类型放 @shared/types/user，因为 <script setup> 不允许 export，且主进程侧也要用。
  */
-const props = withDefaults(defineProps<{ model?: UserDTO | null; mode?: 'create' | 'edit' }>(), {
+const props = withDefaults(defineProps<{ model?: UserDTO | null; mode?: FormType }>(), {
   model: null,
-  mode: 'create'
+  mode: FormType.ADD
 })
 
 const emit = defineEmits<{
@@ -39,7 +40,7 @@ const rules: FormRules<UserDTO> = {
   role: [{ required: true, message: '请选择角色', trigger: 'change' }]
 }
 
-const title = computed(() => (props.mode === 'edit' ? '编辑用户' : '新增用户'))
+const title = computed(() => (props.mode === FormType.EDIT ? '编辑用户' : '新增用户'))
 
 watch(
   () => props.model,
@@ -100,7 +101,7 @@ defineExpose({ submit, cancel, validate, title })
       </el-col>
       <el-col :span="12">
         <el-form-item label="状态">
-          <el-tag size="small" type="info">{{ mode === 'edit' ? '编辑中' : '新建' }}</el-tag>
+          <el-tag size="small" type="info">{{ mode === FormType.EDIT ? '编辑中' : '新建' }}</el-tag>
         </el-form-item>
       </el-col>
       <el-col :span="24">

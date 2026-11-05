@@ -1,5 +1,6 @@
 import type { Router } from 'vue-router'
 import { APP_NAME } from '@shared/constants/app'
+import { LANDING_PATH } from '@shared/constants/navigation'
 import { env } from '@renderer/env'
 import { useTabsStore } from '@renderer/stores/tabs'
 import { useAuthStore } from '@renderer/stores/auth'
@@ -30,7 +31,7 @@ export function setupGuards(router: Router): void {
       return to.path === '/splash' ? true : { path: '/splash' }
     }
 
-    if (to.meta.window && self === null) return { path: '/home' }
+    if (to.meta.window && self === null) return { path: LANDING_PATH }
     if (!to.meta.window && self !== null) {
       // 窗口进程只应渲染它被创建时那一条窗口路由
       return self.kind ? { path: `/w/${self.kind}` } : false
@@ -38,12 +39,12 @@ export function setupGuards(router: Router): void {
 
     // 关掉登录页时，/login 本身也不该可达
     if (!env.featureLogin) {
-      return to.path === '/login' ? { path: '/home' } : true
+      return to.path === '/login' ? { path: LANDING_PATH } : true
     }
 
     const auth = useAuthStore()
     if (to.path === '/login') {
-      if (auth.isAuthenticated) return { path: '/home' }
+      if (auth.isAuthenticated) return { path: LANDING_PATH }
       // 主窗口不该渲染登录页：交给主进程切成独立登录窗（浏览器预览则直接放行）
       if (window.api?.app?.showLogin) {
         void window.api.app.showLogin().catch(() => {})

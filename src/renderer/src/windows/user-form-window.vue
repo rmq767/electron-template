@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { onScopeDispose, ref } from 'vue'
-import WindowGate from '@renderer/components/base/window-gate.vue'
+import WindowGate from '@renderer/components/window-gate/index.vue'
 import WindowShell from '@renderer/components/chrome/window-shell.vue'
-import UserForm from '@renderer/views/system/components/user-form.vue'
+import UserForm from '@renderer/views/system/user/components/user-form.vue'
+import { FormType } from '@renderer/types/common'
 import { useWindowPayload } from '@renderer/composables/useWindowPayload'
 
 defineOptions({ name: 'w-user-form' })
@@ -48,7 +49,7 @@ onScopeDispose(() => window.removeEventListener('keydown', onKeydown))
         </p>
         <user-form
           ref="formRef"
-          :mode="state.props.value?.id ? 'edit' : 'create'"
+          :mode="state.props.value?.id ? FormType.EDIT : FormType.ADD"
           :model="state.props.value"
         />
       </div>
