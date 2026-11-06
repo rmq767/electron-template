@@ -9,3 +9,8 @@ export interface UserDTO {
   role: UserRole
   remark?: string
 }
+
+/** 列表行：已落库的记录必然带主键，区别于新增时尚无 id 的 UserDTO。 */
+export interface UserRow extends UserDTO {
+  id: number
+}

@@ -126,10 +126,11 @@ src/renderer   普通 Vue 应用；禁 Node/electron，只认 window.api
 
 - 全局组件：`my-search` / `my-table` / `my-pagination` / `my-dialog` / `my-drawer` 在 `main.ts` 注册，类型在 `types/components.d.ts`；页面直接用 kebab-case 标签，不重复 import。
 - 列表页固定组合：`<my-search>`（`filters` 配置 + `formData`）→ `<my-table>`（`columns` 配置 + `field` 插槽）→ `<my-pagination>`（`v-model:page` / `v-model:size`）。
-- 数据与事件：`useSearchFilter` 生成查询表单，`useListPage` 统一搜索/重置/分页/排序，`useCheckboxSelection` 管理跨页多选；不要每页再手写一套。
+- 数据与事件：`useSearchFilter` 生成查询表单，`useListPage` 统一搜索/重置/分页/排序，`useAbortableRequest` 负责竞态取消与 `loading` 收尾，`useCheckboxSelection` 管理跨页多选；不要每页再手写一套。
 - 表单弹窗：每个模块一个 `components/form-dialog.vue`，暴露 `open(FormType.ADD | FormType.EDIT, row)`，保存后 `emit('success', value)`；页面只拿结果刷新列表。
 - `my-dialog` / `my-drawer` 只负责外观与默认契约（`v-model` + `title` + `footer` 插槽 + `$attrs`）；不再提供 `confirm` / `cancel` 事件。页面级弹层状态收在 `form-dialog` 内，不另建弹层状态 hook。
-- 字段类型 `FilterItem`、列配置 `VxeColumn`、`FormType`、`OptionItem` 统一放 `src/renderer/src/types/common.ts`。
+- `my-table` 的 `loading` 用 Element 的 `v-loading`，不要改成注册 vxe 的 loading 组件（它依赖 vxe-pc-ui 的图标引导，模板没引，运行期会报错）。
+- 字段类型 `FilterItem`、列配置 `VxeColumn`、`FormType`、`OptionItem`、`PageQuery`、`ApiResponse`、`PageResponse`、`HttpStatus` 统一放 `src/renderer/src/types/common.ts`。
 
 ---
 
@@ -137,8 +138,13 @@ src/renderer   普通 Vue 应用；禁 Node/electron，只认 window.api
 
 - 偏好与会话只走 `window.api.store`（`userData/settings.json`）；**禁止用 localStorage 存 token**。
 - 日志落 `userData/logs/`，诊断包落 `userData/diagnostics/`；不做云端错误上报。
-- HTTP 只使用 `src/renderer/src/api/http.ts` 的原生 fetch；`configureHttp` 在 `main.ts` 注入。
-- 未配置 `RENDERER_VITE_API_BASE_URL` 时必须抛可读错误，**不虚构接口、不假装请求成功**。
+- HTTP 统一走 `src/renderer/src/api/http.ts` 里的 axios 实例；`configureHttp` 在 `main.ts` 注入 token / 401 / 超时。对外形状固定为 `request<T>({ url, method, params, data, signal, timeout })`，**其他文件不得新建 axios 实例或直接调 axios**。
+- 拦截器只做三件事：注入 token、拆响应体、把失败归一成 `HttpError`；**不在拦截器里弹 ElMessage**——桌面端日志走 `window.api.log`，取消与真失败必须能区分。
+- CSP 的 `connect-src` 必须放行后端基址，`index.html` 用 `%RENDERER_VITE_API_BASE_URL%` 构建期插值；漏了会被 `default-src 'self'` 拦掉，现象是"网络连接失败 / Failed to fetch"，很容易误判成 CORS。
+- 业务接口按模块落在 `src/renderer/src/api/<域>/<模块>.ts`，函数写成 `xxxApi(params, signal?)` 并显式标注返回 `ApiResponse<T>` / `PageResponse<T>`；列表页只 import 这些函数，不在页面里直接调 `request`。
+- 响应包络不在 http 层拆：页面按 `res.code === HttpStatus.SUCCESS` 判断，判码用 `HttpStatus` 常量，不写死数字。
+- 列表请求的取消与 loading 一律走 `useAbortableRequest` 的 `runWithLoading`；被取代的请求返回 `undefined` 且不熄灭 loading，页面不写 try/finally。
+- 未配置 `RENDERER_VITE_API_BASE_URL` 时必须抛可读错误，**不虚构接口、不假装请求成功**；模板的用户模块是 `api/system/user.ts` 里的 mock，接真后端只改该文件。
 - 接真实接口时：DTO 放 `shared/types`；字段与单位以接口实际返回 / OpenAPI 为准，**前端不做 `displayUnit` 之类兜底**；后端待改项单独整理，不在前端偷偷改口径。
 - 401 只能说明接口存在，不等于接口缺失；先实测，确认真缺失再列「需后端配合」。
 - 渲染层日志统一走 `window.api.log`，不要 console 代替业务日志。

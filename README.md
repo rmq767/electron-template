@@ -111,15 +111,15 @@ src/shared    共用层    纯类型 + 常量 + 无副作用函数，不得 impo
 
 前缀由 electron-vite 决定，按进程隔离：`MAIN_VITE_*` / `PRELOAD_VITE_*` / `RENDERER_VITE_*`。
 
-| 变量                         | 说明                                                                   |
-| ---------------------------- | ---------------------------------------------------------------------- |
-| `APP_NAME`                   | 应用名：窗口标题、登录页、侧栏、菜单与安装包 `productName`             |
-| `APP_TAGLINE`                | 登录页副标题（可为空）                                                 |
-| `APP_ID`                     | Windows AppUserModelId，同时作为安装包 `appId`                         |
-| `APP_ICON`                   | `resources/` 下的运行时窗口图标文件名，打包时会一起拷进 resources      |
-| `APP_FEATURE_LOGIN`          | `false` = 跳过登录独立窗口与鉴权守卫                                   |
-| `APP_SPLASH_MIN_MS`          | 无需登录时启动页的最短展示时间（毫秒），默认 900                       |
-| `RENDERER_VITE_API_BASE_URL` | 后端基址。**留空 = 不连后端**，`api/http` 会给出可读报错而不是假装能跑 |
+| 变量                         | 说明                                                                                                          |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `APP_NAME`                   | 应用名：窗口标题、登录页、侧栏、菜单与安装包 `productName`                                                    |
+| `APP_TAGLINE`                | 登录页副标题（可为空）                                                                                        |
+| `APP_ID`                     | Windows AppUserModelId，同时作为安装包 `appId`                                                                |
+| `APP_ICON`                   | `resources/` 下的运行时窗口图标文件名，打包时会一起拷进 resources                                             |
+| `APP_FEATURE_LOGIN`          | `false` = 跳过登录独立窗口与鉴权守卫                                                                          |
+| `APP_SPLASH_MIN_MS`          | 无需登录时启动页的最短展示时间（毫秒），默认 900                                                              |
+| `RENDERER_VITE_API_BASE_URL` | 后端基址。**留空 = 不连后端**，`api/http` 会给出可读报错而不是假装能跑；同时按构建期插进 CSP 的 `connect-src` |
 
 `APP_*` 不是 Vite 前缀变量：`electron.vite.config.ts` 用 `loadEnv` 读取后通过 `define` 注入主进程、
 preload 与渲染层，业务代码只从 `src/shared/constants/app.ts` 读。`electron-builder.cjs` 也读同一份
@@ -153,7 +153,7 @@ preload 与渲染层，业务代码只从 `src/shared/constants/app.ts` 读。`e
 ### 列表页组件
 
 `my-search` / `my-table` / `my-pagination` / `my-dialog` / `my-drawer` 已在 `main.ts` 全局注册，
-配合 `useSearchFilter` + `useListPage`，新列表页按固定组合写：
+配合 `useSearchFilter` + `useListPage` + `useAbortableRequest`，新列表页按固定组合写：
 
 ```vue
 <my-search :filters="filters" :form-data="formData" @search="onSearch" @reset="onReset">
@@ -161,7 +161,7 @@ preload 与渲染层，业务代码只从 `src/shared/constants/app.ts` 读。`e
 </my-search>
 
 <section class="panel panel--table">
-  <my-table :columns="columns" :data="rows" :seq="true" :row-config="{ keyField: 'id' }">
+  <my-table :columns="columns" :data="rows" :loading="loading" :seq="true" :row-config="{ keyField: 'id' }">
     <template #action="{ row }">
       <el-button size="small" text type="primary" @click="handleEdit(row)">编辑</el-button>
     </template>
@@ -177,8 +177,31 @@ preload 与渲染层，业务代码只从 `src/shared/constants/app.ts` 读。`e
 <form-dialog ref="formDialogRef" @success="handleSaved" />
 ```
 
+取数只有一段固定形状，取消与 loading 都交给 `useAbortableRequest`：
+
+```ts
+const pagination = reactive({ pageNum: 1, pageSize: 10 })
+const queryParams = computed<UserListParams>(() => ({ ...formData.value, ...pagination }))
+const { runWithLoading } = useAbortableRequest()
+
+async function getList(): Promise<void> {
+  const res = await runWithLoading(loading, (signal) => getUserListApi(queryParams.value, signal))
+  if (res?.code !== HttpStatus.SUCCESS) return
+  rows.value = res.rows
+  total.value = res.total
+}
+
+const { onSearch, onReset, onPagination } = useListPage({ getList, pagination })
+```
+
 - 列表页参考 [views/system/user/index.vue](src/renderer/src/views/system/user/index.vue)；
   列配置放同目录 `index.ts`，表单弹窗放 `components/form-dialog.vue`。
+- 接口按模块放 [api/system/user.ts](src/renderer/src/api/system/user.ts)，函数写成 `xxxApi(params, signal?)`。
+  当前是纯前端 mock，**接真实后端时只改这个文件**：函数体换成
+  `request<PageResponse<UserRow>>({ url, method: 'get', params, signal })`，页面与类型都不用动。
+- 请求层是 [api/http.ts](src/renderer/src/api/http.ts) 里的**一个** axios 实例，拦截器只注入 token 与归一错误，
+  不在别处新建实例、也不在拦截器里弹提示。真实后端必须放行跨域（生产包从 `file://` 发起，Origin 为 `null`）；
+  CSP 的 `connect-src` 已按 `RENDERER_VITE_API_BASE_URL` 构建期插值，漏配会表现为 `Failed to fetch`。
 - `form-dialog` 暴露 `open(FormType.ADD | FormType.EDIT, row)`，保存后 `emit('success', value)`，
   页面只负责更新数据与刷新。
 - `my-dialog` / `my-drawer` 只负责外观与默认契约（`v-model` + `title` + `footer` 插槽 + `$attrs`），

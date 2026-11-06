@@ -188,18 +188,25 @@ components/my-table/        VxeColumn 配置 + field 插槽，vxe-table 封装�
 components/my-pagination/   v-model:page / v-model:size + total，emit('pagination', { page, size })
 components/my-dialog/       v-model + title + footer 插槽 + $attrs
 components/my-drawer/       与 my-dialog 同 API 形态
+api/system/user.ts          用户模块接口（当前为 mock，函数签名即真实接口形状）
 composables/useSearchFilter.ts    查询表单初值 + toApiParams（date-range 拆 start/end）
 composables/useListPage.ts        搜索/重置/分页/排序事件
+composables/useAbortableRequest.ts 竞态取消 + loading 收尾（runWithLoading / run）
 composables/useActivatedRefresh.ts keep-alive 页面回到前台时刷新
 composables/useCheckboxSelection.ts 跨页多选（配合 checkbox-config.reserve）
 ```
 
 页面固定组合：`<my-search>` → `<my-table>` → `<my-pagination>`，数据加载函数保持单一名字 `getList`。
+`getList` 里只做两件事：`runWithLoading(loading, (signal) => xxxApi(queryParams, signal))` 取数、
+按 `res.code === HttpStatus.SUCCESS` 写入 `rows` / `total`；取消与 loading 开关都不在页面手写。
 组件在 `main.ts` 全局注册，类型声明在 `types/components.d.ts`；页面不重复 import。
-`VxeColumn`、`FilterItem`、`OptionItem`、`FormType` 统一放 `types/common.ts`。
+`VxeColumn`、`FilterItem`、`OptionItem`、`FormType`、`PageQuery`、`ApiResponse`、`PageResponse`、`HttpStatus` 统一放 `types/common.ts`。
+`my-table` 的 `loading` 走 Element 的 `v-loading` 指令：vxe 自带的加载面板要 vxe-pc-ui 的图标引导，
+模板只引了 vxe 的样式与表格组件，注册它会运行期报错，所以不引第二个 vxe 组件。
 
 vxe-table 的主题不走局部覆盖：`element-theme.scss` 把 `--vxe-ui-*` 映射到 `--app-*`，
-亮/暗两套主题随 `html.dark` 自动切换；CSP 需允许 `font-src 'self' data:`，否则 vxe 内联图标字体被拦截。
+亮/暗两套主题随 `html.dark` 自动切换；CSP 需允许 `font-src 'self' data:`，否则 vxe 内联图标字体被拦截；
+`connect-src` 还需放行后端基址（见「状态与数据」），否则请求层发不出跨域请求。
 
 **组件**：
 
@@ -226,10 +233,20 @@ keep-alive 的 include 直接复用路由名。
 | 偏好、会话 | `userData/settings.json`      | 独立窗口各有 Web Storage，只有主进程那份唯一；也不把 token 明文放 localStorage |
 | 日志       | `userData/logs/`              | 按天分片、写满 10MB 切 `.1/.2`、保留 14 天；自建 ~90 行，不引 electron-log     |
 | 诊断       | `userData/diagnostics/*.json` | 含环境与日志尾部，不引 zip；菜单与 IPC 共用一份实现                            |
-| 业务数据   | `api/http.ts`（原生 fetch）   | 不引 axios：只需要基址、token、超时、401 联动，少一个依赖                      |
+| 业务数据   | `api/http.ts`（axios 实例）   | 唯一请求入口：token / 超时 / 401 / 错误归一都在这一层                          |
 
 `configureHttp({ getToken, onUnauthorized })` 在 `main.ts` 注入，避免 http ↔ store 循环依赖。
-未配置 `RENDERER_VITE_API_BASE_URL` 时 `request()` 抛可读错误，**不虚构后端接口**。
+对外是对象入参形状 `request<T>({ url, method, params, data, signal, timeout })`，实现是一个 axios 实例：
+`params` 里 undefined / null / 空串不下发，`signal` 由 `useAbortableRequest` 注入，超时默认 15s。
+拦截器只做注入 token、拆响应体、把失败归一成 `HttpError` 三件事；**不弹提示**，否则取消与真失败会混成一层。
+响应包络 `ApiResponse`（`code/msg/data`）与 `PageResponse`（`code/msg/rows/total`）不在这层拆，
+页面按 `res.code === HttpStatus.SUCCESS` 判断，判码用常量不写死数字。
+CSP 的 `connect-src` 由 `index.html` 里的 `%RENDERER_VITE_API_BASE_URL%` 构建期插值；
+漏掉会被 `default-src 'self'` 拦掉，表现为 "Failed to fetch / 网络连接失败"。
+生产包从 `file://` 发起请求，Origin 为 `null`，**后端必须放行跨域**，否则先撞 CORS 再谈业务。
+业务接口按模块落在 `api/<域>/<模块>.ts`，函数签名（`xxxApi(params, signal)`）就是接真实后端时要保留的形状。
+未配置 `RENDERER_VITE_API_BASE_URL` 时 `request()` 抛可读错误，**不虚构后端接口**；
+用户模块当前由 `api/system/user.ts` 的 mock 提供数据，换成真接口只改这一个文件。
 `userData` 的实际路径由 `APP_NAME` 决定（Windows 为 `%APPDATA%/<APP_NAME>`）。
 
 `bootstrap()` 先 `hydrate()` + `restore()`，再 `app.use(router)` + `mount()`：

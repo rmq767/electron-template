@@ -46,11 +46,12 @@ defineExpose({ tableRef })
 </script>
 
 <template>
+  <!-- loading 走 Element 指令：vxe 的加载面板要 vxe-pc-ui 的图标引导，模板没引那套 -->
   <vxe-table
     ref="tableRef"
+    v-loading="loading"
     class="app-table"
     :data="data"
-    :loading="loading"
     :row-config="mergedRowConfig"
     :tooltip-config="tooltipConfig"
     :show-overflow="true"

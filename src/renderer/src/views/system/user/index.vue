@@ -1,13 +1,20 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
-import type { UserDTO } from '@shared/types/user'
-import { FormType, type FilterItem, type SearchFieldValue } from '@renderer/types/common'
+import type { UserDTO, UserRow } from '@shared/types/user'
+import { FormType, HttpStatus, type FilterItem } from '@renderer/types/common'
 import { useSearchFilter } from '@renderer/composables/useSearchFilter'
 import { useListPage } from '@renderer/composables/useListPage'
 import { useActivatedRefresh } from '@renderer/composables/useActivatedRefresh'
+import { useAbortableRequest } from '@renderer/composables/useAbortableRequest'
 import { confirmAction } from '@renderer/composables/confirmAction'
+import {
+  deleteUserApi,
+  getUserListApi,
+  saveUserApi,
+  type UserListParams
+} from '@renderer/api/system/user'
 import FormDialog from './components/form-dialog.vue'
 import { columns } from './index'
 
@@ -27,49 +34,24 @@ const filters: FilterItem[] = [
 
 const { formData } = useSearchFilter(filters)
 
-/** 纯前端 mock 数据：接真实接口时把 getList 换成 API 调用即可。 */
-const allUsers = ref<UserDTO[]>([
-  { id: 1, name: '张伟', account: 'zhangwei', role: 'admin', remark: '系统管理员' },
-  { id: 2, name: '李娜', account: 'lina', role: 'editor', remark: '内容运营' },
-  { id: 3, name: '王强', account: 'wangqiang', role: 'viewer', remark: '只读账号' },
-  { id: 4, name: '陈默', account: 'chenmo', role: 'editor', remark: '数据分析' },
-  { id: 5, name: '刘洋', account: 'liuyang', role: 'viewer' },
-  { id: 6, name: '赵敏', account: 'zhaomin', role: 'admin', remark: '权限管理员' },
-  { id: 7, name: '孙晨', account: 'sunchen', role: 'editor' },
-  { id: 8, name: '周婷', account: 'zhouting', role: 'viewer', remark: '外部协作' },
-  { id: 9, name: '吴楠', account: 'wunan', role: 'editor', remark: '审核编辑' },
-  { id: 10, name: '郑浩', account: 'zhenghao', role: 'viewer' },
-  { id: 11, name: '冯雪', account: 'fengxue', role: 'editor', remark: '内容审核' },
-  { id: 12, name: '许峰', account: 'xufeng', role: 'admin', remark: '运维管理员' }
-])
-
-const rows = ref<UserDTO[]>([])
-const total = ref(0)
 const pagination = reactive({ pageNum: 1, pageSize: 10 })
+/** 单一数据源：筛选条件 + 分页；有 date-range 时改用 toApiParams 拆分。 */
+const queryParams = computed<UserListParams>(() => ({ ...formData.value, ...pagination }))
+
+const rows = ref<UserRow[]>([])
+const total = ref(0)
+const loading = ref(false)
 const rowConfig = { keyField: 'id' } as const
 const formDialogRef = ref<InstanceType<typeof FormDialog> | null>(null)
 
-function searchText(value: SearchFieldValue): string {
-  return typeof value === 'string' ? value.trim().toLowerCase() : ''
-}
+const { runWithLoading } = useAbortableRequest()
 
-function getList(): void {
-  const name = searchText(formData.value.name)
-  const account = searchText(formData.value.account)
-  const role = typeof formData.value.role === 'string' ? formData.value.role : ''
-
-  const filtered = allUsers.value.filter((user) => {
-    const matchName = !name || user.name.toLowerCase().includes(name)
-    const matchAccount = !account || user.account.toLowerCase().includes(account)
-    const matchRole = !role || user.role === role
-    return matchName && matchAccount && matchRole
-  })
-
-  total.value = filtered.length
-  const maxPage = Math.max(1, Math.ceil(filtered.length / pagination.pageSize))
-  if (pagination.pageNum > maxPage) pagination.pageNum = maxPage
-  const start = (pagination.pageNum - 1) * pagination.pageSize
-  rows.value = filtered.slice(start, start + pagination.pageSize)
+/** 数据加载函数保持单一名字，调用点不区分来源；取消与 loading 由 runWithLoading 接管。 */
+async function getList(): Promise<void> {
+  const res = await runWithLoading(loading, (signal) => getUserListApi(queryParams.value, signal))
+  if (res?.code !== HttpStatus.SUCCESS) return
+  rows.value = res.rows
+  total.value = res.total
 }
 
 const { onSearch, onReset, onPagination } = useListPage({ getList, pagination })
@@ -78,32 +60,31 @@ function handleAdd(): void {
   formDialogRef.value?.open(FormType.ADD)
 }
 
-function handleEdit(row: UserDTO): void {
+function handleEdit(row: UserRow): void {
   formDialogRef.value?.open(FormType.EDIT, row)
 }
 
-function handleSaved(value: UserDTO): void {
-  const index = allUsers.value.findIndex((user) => user.id === value.id)
-  if (index >= 0) {
-    allUsers.value[index] = value
-  } else {
-    const nextId = Math.max(0, ...allUsers.value.map((user) => user.id ?? 0)) + 1
-    allUsers.value.unshift({ ...value, id: nextId })
-    pagination.pageNum = 1
-  }
-  getList()
+async function handleSaved(value: UserDTO): Promise<void> {
+  const res = await saveUserApi(value)
+  if (res.code !== HttpStatus.SUCCESS) return
+  // 新增落到列表顶部，回到第一页才不会看不见
+  if (!value.id) pagination.pageNum = 1
+  await getList()
   ElMessage.success('已保存')
 }
 
-async function handleDelete(row: UserDTO): Promise<void> {
+async function handleDelete(row: UserRow): Promise<void> {
   const ok = await confirmAction(`确定删除「${row.name}」吗？`, {
     danger: true,
     confirmText: '删除'
   })
   if (!ok) return
-  allUsers.value = allUsers.value.filter((user) => user.id !== row.id)
-  getList()
+  const res = await deleteUserApi(row.id)
+  if (res.code !== HttpStatus.SUCCESS) return
   ElMessage.success('已删除')
+  // 远程分页不会自己回退页码，删掉本页最后一条时往前退一页
+  if (rows.value.length <= 1 && pagination.pageNum > 1) pagination.pageNum -= 1
+  await getList()
 }
 
 function roleLabel(role: UserDTO['role']): string {
@@ -125,7 +106,13 @@ useActivatedRefresh(getList)
     </my-search>
 
     <section class="panel panel--table">
-      <my-table :columns="columns" :data="rows" :seq="true" :row-config="rowConfig">
+      <my-table
+        :columns="columns"
+        :data="rows"
+        :loading="loading"
+        :seq="true"
+        :row-config="rowConfig"
+      >
         <template #account="{ row }">
           <span class="mono account">{{ row.account }}</span>
         </template>

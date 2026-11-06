@@ -42,3 +42,37 @@ export interface VxeColumn extends VxeColumnProps {
   slot?: boolean
   visible?: boolean
 }
+
+/** 后端响应码。页面判 code 用常量，不写死数字。 */
+export const HttpStatus = {
+  SUCCESS: 200,
+  UNAUTHORIZED: 401,
+  FORBIDDEN: 403,
+  NOT_FOUND: 404,
+  SERVER_ERROR: 500
+} as const
+
+export type HttpStatus = (typeof HttpStatus)[keyof typeof HttpStatus]
+
+/** 普通接口包络；data 缺省为 null，删除/操作类接口可直接标注 ApiResponse。 */
+export interface ApiResponse<T = null> {
+  code: number
+  msg: string
+  data: T
+}
+
+/** 列表接口包络：分页数据在 rows，总数在 total。 */
+export interface PageResponse<T> {
+  code: number
+  msg: string
+  rows: T[]
+  total: number
+}
+
+/** 列表查询参数基类型：分页字段必填，排序字段按需带上。 */
+export interface PageQuery {
+  pageNum: number
+  pageSize: number
+  orderByColumn?: string
+  isAsc?: string
+}

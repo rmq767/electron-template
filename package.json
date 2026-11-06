@@ -34,6 +34,7 @@
     "@element-plus/icons-vue": "^2.3.1",
     "@types/node": "^24.19.2",
     "@vitejs/plugin-vue": "^6.0.10",
+    "axios": "^1.21.0",
     "electron": "^45.2.2",
     "electron-builder": "^26.18.0",
     "electron-vite": "^6.0.0",
