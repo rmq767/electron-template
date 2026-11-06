@@ -33,9 +33,15 @@ export function setupGuards(router: Router): void {
 
     if (to.meta.window && self === null) return { path: LANDING_PATH }
     if (!to.meta.window && self !== null) {
-      // 窗口进程只应渲染它被创建时那一条窗口路由
-      return self.kind ? { path: `/w/${self.kind}` } : false
+      // 窗口进程只应渲染它被创建时那一条窗口路由；
+      // 同路径仍命中说明路由漏了 meta.window: true，转到兜底页而不是无限重定向
+      const windowHome = `/w/${self.kind}`
+      if (to.path === windowHome) return { path: '/w/__missing__', query: { kind: self.kind } }
+      return { path: windowHome }
     }
+
+    // 业务窗口由主进程创建（IPC 层只允许主窗口 open），不再走登录守卫，避免未会话时登录重定向循环
+    if (self !== null) return true
 
     // 关掉登录页时，/login 本身也不该可达
     if (!env.featureLogin) {
@@ -46,7 +52,7 @@ export function setupGuards(router: Router): void {
     if (to.path === '/login') {
       if (auth.isAuthenticated) return { path: LANDING_PATH }
       // 主窗口不该渲染登录页：交给主进程切成独立登录窗（浏览器预览则直接放行）
-      if (window.api?.app?.showLogin) {
+      if (self === null && window.api?.app?.showLogin) {
         void window.api.app.showLogin().catch(() => {})
         return false
       }
@@ -60,7 +66,9 @@ export function setupGuards(router: Router): void {
 
   router.afterEach((to) => {
     document.title = resolveTitle(to.meta.title)
-    // 只给主界面里的叶子路由建标签页；窗口页与登录页都不建
-    if (to.meta.title && !to.meta.window && to.matched.length > 1) useTabsStore().add(to)
+    // 只给主界面里的叶子路由建标签页；窗口页、登录页与 404 都不建
+    if (to.meta.title && !to.meta.window && !to.meta.hidden && to.matched.length > 1) {
+      useTabsStore().add(to)
+    }
   })
 }

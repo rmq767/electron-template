@@ -18,6 +18,13 @@ export const routes: RouteRecordRaw[] = [
         name: LANDING_ROUTE_NAME,
         component: () => import('@renderer/views/system/user/index.vue'),
         meta: { title: LANDING_TITLE, group: '管理' }
+      },
+      {
+        // 主窗口内的兜底：保留标题栏与侧栏，不让 404 把应用外壳一起替换掉
+        path: ':pathMatch(.*)*',
+        name: 'not-found',
+        component: () => import('@renderer/views/error/not-found.vue'),
+        meta: { title: '页面不存在', hidden: true }
       }
     ]
   },
@@ -34,10 +41,11 @@ export const routes: RouteRecordRaw[] = [
     meta: { title: '启动', window: true, hidden: true }
   },
   {
-    path: '/:pathMatch(.*)*',
-    name: 'not-found',
-    component: () => import('@renderer/views/error/not-found.vue'),
-    meta: { title: '页面不存在', hidden: true }
+    // 独立窗口兜底：路由必须显式声明 meta.window，否则守卫会重定向到它
+    path: '/w/:pathMatch(.*)*',
+    name: 'window-fallback',
+    component: () => import('@renderer/views/window/window-fallback.vue'),
+    meta: { title: '窗口未就绪', window: true, hidden: true }
   }
 ]
 

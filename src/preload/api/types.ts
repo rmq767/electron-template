@@ -59,6 +59,8 @@ export interface Api {
       options?: OpenWindowOptions
     ): Promise<OpenOutcome<WindowResultMap[K]>>
     close(result?: unknown): Promise<void>
+    /** 明确成功完成（即使没有返回值），与 close 的“取消”语义区分。 */
+    complete(result?: unknown): Promise<void>
     getPayload<K extends WindowKind>(): Promise<WindowPayload<K>>
     /** 返回解绑函数，组件卸载必须调用，否则监听器跨窗口残留。 */
     pushProps<K extends WindowKind>(callback: (props: WindowPropsMap[K]) => void): () => void

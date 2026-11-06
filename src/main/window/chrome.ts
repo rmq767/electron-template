@@ -6,6 +6,17 @@ import { logger } from '@main/log/logger'
  * 所有窗口共用的安全边界：
  * 应用内不新开浏览器窗口，外链交给系统浏览器；页面不得跳出自身文档。
  */
+/** 只允许留在当前文档：同源 + 同 pathname，避免前缀比较把 index.html.evil 放进来。 */
+function isCurrentDocument(targetUrl: string, ownUrl: string): boolean {
+  try {
+    const target = new URL(targetUrl)
+    const own = new URL(ownUrl)
+    return target.origin === own.origin && target.pathname === own.pathname
+  } catch {
+    return false
+  }
+}
+
 function attachNavigationPolicy(win: BrowserWindow): void {
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https?:\/\//i.test(url)) void shell.openExternal(url)
@@ -13,8 +24,7 @@ function attachNavigationPolicy(win: BrowserWindow): void {
   })
 
   win.webContents.on('will-navigate', (event, url) => {
-    const own = win.webContents.getURL().split('#')[0]
-    if (!url.startsWith(own)) {
+    if (!isCurrentDocument(url, win.webContents.getURL())) {
       event.preventDefault()
       logger.warn('拦截页面跳转', { url })
     }
@@ -35,5 +45,7 @@ export function attachWindowChrome(win: BrowserWindow): void {
 /** IPC 只能操作发起调用的那个窗口，渲染进程无法冒充别的窗口关窗/最大化。 */
 export function windowFromContentsId(contentsId: number): BrowserWindow | null {
   const contents = webContents.fromId(contentsId)
-  return contents ? BrowserWindow.fromWebContents(contents) : null
+  if (!contents || contents.isDestroyed()) return null
+  const win = BrowserWindow.fromWebContents(contents)
+  return win && !win.isDestroyed() ? win : null
 }

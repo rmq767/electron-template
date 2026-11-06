@@ -10,6 +10,11 @@ type AppTheme = 'light' | 'dark'
 export const useAppStore = defineStore('app', () => {
   const theme = ref<AppTheme>('light')
   const sidebarCollapsed = ref(false)
+  // 单独在浏览器里预览渲染层时没有 preload：降级为内存状态，页面仍可挂载
+  const store = window.api?.store
+  // 记录已落盘的值，避免 hydrate 时被 watch 原样回写一次
+  let persistedTheme: AppTheme | null = null
+  let persistedCollapsed: boolean | null = null
 
   function applyTheme(): void {
     document.documentElement.classList.toggle('dark', theme.value === 'dark')
@@ -17,21 +22,27 @@ export const useAppStore = defineStore('app', () => {
 
   async function hydrate(): Promise<void> {
     const [savedTheme, savedCollapsed] = await Promise.all([
-      window.api.store.get('ui.theme'),
-      window.api.store.get('ui.sidebarCollapsed')
+      store?.get('ui.theme'),
+      store?.get('ui.sidebarCollapsed')
     ])
     if (savedTheme) theme.value = savedTheme
     sidebarCollapsed.value = savedCollapsed ?? false
+    persistedTheme = theme.value
+    persistedCollapsed = sidebarCollapsed.value
     applyTheme()
   }
 
   watch(theme, (value) => {
     applyTheme()
-    void window.api.store.set('ui.theme', value)
+    if (value === persistedTheme) return
+    persistedTheme = value
+    void store?.set('ui.theme', value)
   })
 
   watch(sidebarCollapsed, (value) => {
-    void window.api.store.set('ui.sidebarCollapsed', value)
+    if (value === persistedCollapsed) return
+    persistedCollapsed = value
+    void store?.set('ui.sidebarCollapsed', value)
   })
 
   function toggleTheme(): void {

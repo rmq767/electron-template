@@ -1,7 +1,8 @@
 import { app } from 'electron'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'fs'
 import { dirname, join } from 'path'
 import type { SettingsKey, SettingsValue } from '@shared/ipc/schema'
+import type { AuthSession } from '@shared/types/auth'
 
 /**
  * 极简 JSON 设置存储，落在 userData/settings.json。
@@ -9,6 +10,40 @@ import type { SettingsKey, SettingsValue } from '@shared/ipc/schema'
  */
 
 type Store = Record<string, SettingsValue>
+
+const SETTINGS_KEYS: readonly SettingsKey[] = ['ui.theme', 'ui.sidebarCollapsed', 'auth.session']
+
+function isSettingsKey(key: string): key is SettingsKey {
+  return (SETTINGS_KEYS as readonly string[]).includes(key)
+}
+
+/**
+ * IPC 只有编译期契约；这里是主进程侧的运行时校验入口。
+ * 非法 key（例如 __proto__）与形状不符的值一律拒绝，不写进 settings.json。
+ */
+function assertSettingsValue(key: SettingsKey, value: unknown): asserts value is SettingsValue {
+  if (key === 'ui.theme') {
+    if (value !== 'light' && value !== 'dark') throw new Error('[store] ui.theme 必须是 light/dark')
+    return
+  }
+  if (key === 'ui.sidebarCollapsed') {
+    if (typeof value !== 'boolean') throw new Error('[store] ui.sidebarCollapsed 必须是 boolean')
+    return
+  }
+  if (value === null) return
+  if (!value || typeof value !== 'object') throw new Error('[store] auth.session 形状不合法')
+  const session = value as Partial<AuthSession>
+  const rolesOk =
+    Array.isArray(session.roles) && session.roles.every((role) => typeof role === 'string')
+  if (
+    typeof session.token !== 'string' ||
+    typeof session.userName !== 'string' ||
+    typeof session.displayName !== 'string' ||
+    !rolesOk
+  ) {
+    throw new Error('[store] auth.session 形状不合法')
+  }
+}
 
 let cache: Store | null = null
 
@@ -39,14 +74,21 @@ function load(): Store {
 }
 
 export function getSetting(key: SettingsKey): SettingsValue | undefined {
+  if (!isSettingsKey(key)) throw new Error(`[store] 未知设置键：${String(key)}`)
   return load()[key]
 }
 
 export function setSetting(key: SettingsKey, value: unknown): void {
+  if (!isSettingsKey(key)) throw new Error(`[store] 未知设置键：${String(key)}`)
+  assertSettingsValue(key, value)
   const store = load()
-  store[key] = value as SettingsValue
+  store[key] = value
   const path = file()
+  const payload = JSON.stringify(store, null, 2)
   mkdirSync(dirname(path), { recursive: true })
-  writeFileSync(path, JSON.stringify(store, null, 2), 'utf-8')
+  // 先写临时文件再原子替换，避免写一半崩溃把整份设置弄坏
+  const temp = `${path}.tmp`
+  writeFileSync(temp, payload, 'utf-8')
+  renameSync(temp, path)
   cache = store
 }

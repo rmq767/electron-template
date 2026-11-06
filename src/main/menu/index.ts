@@ -1,5 +1,6 @@
 import { app, Menu, dialog, shell } from 'electron'
 import type { MenuItemConstructorOptions } from 'electron'
+import { is } from '@electron-toolkit/utils'
 import { logger } from '@main/log/logger'
 import { createDiagnosticsPackage } from '@main/log/diagnostics'
 
@@ -9,6 +10,15 @@ import { createDiagnosticsPackage } from '@main/log/diagnostics'
  */
 export function buildApplicationMenu(): void {
   const isMac = process.platform === 'darwin'
+  // 重载与 DevTools 只在开发期出现；生产菜单不提供绕过 webContents 快捷键的入口
+  const devViewItems: MenuItemConstructorOptions[] = is.dev
+    ? [
+        { role: 'reload' },
+        { role: 'forceReload' },
+        { role: 'toggleDevTools' },
+        { type: 'separator' }
+      ]
+    : []
 
   const template: MenuItemConstructorOptions[] = [
     ...(isMac
@@ -21,7 +31,8 @@ export function buildApplicationMenu(): void {
                 label: '重启应用',
                 click: () => {
                   app.relaunch()
-                  app.exit(0)
+                  // quit 而不是 exit：让 before-quit / will-quit 正常跑完，日志能 flush
+                  app.quit()
                 }
               },
               { type: 'separator' },
@@ -30,22 +41,19 @@ export function buildApplicationMenu(): void {
             ]
           }
         ] as MenuItemConstructorOptions[])),
-    { role: 'editMenu' as MenuItemConstructorOptions['role'] },
+    { role: 'editMenu', label: '编辑' },
     {
       label: '视图',
       submenu: [
-        { role: 'reload' },
-        { role: 'forceReload' },
-        { role: 'toggleDevTools' },
+        ...devViewItems,
+        { role: 'resetZoom', label: '实际大小' },
+        { role: 'zoomIn', label: '放大' },
+        { role: 'zoomOut', label: '缩小' },
         { type: 'separator' },
-        { role: 'resetZoom' },
-        { role: 'zoomIn' },
-        { role: 'zoomOut' },
-        { type: 'separator' },
-        { role: 'togglefullscreen' }
+        { role: 'togglefullscreen', label: '切换全屏' }
       ]
     },
-    { role: 'windowMenu' as MenuItemConstructorOptions['role'] },
+    { role: 'windowMenu', label: '窗口' },
     {
       label: '帮助',
       submenu: [

@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends object">
 import { computed, ref } from 'vue'
 import { VxeColumn, VxeTable } from 'vxe-table'
 import type { VxeTableInstance } from 'vxe-table'
@@ -8,7 +8,7 @@ defineOptions({ name: 'my-table' })
 
 const props = withDefaults(
   defineProps<{
-    data: object[]
+    data: T[]
     columns?: VxeColumnConfig[]
     loading?: boolean
     seq?: boolean
@@ -22,6 +22,9 @@ const props = withDefaults(
   }
 )
 
+// 列是配置驱动的，插槽名即 field；用索引签名把每一列的 row 都收窄成 T
+defineSlots<Record<string, ((props: { row: T }) => unknown) | undefined>>()
+
 const tableRef = ref<VxeTableInstance>()
 
 const mergedRowConfig = computed(() => ({ isHover: true, ...props.rowConfig }))
@@ -34,12 +37,12 @@ const visibleColumns = computed(() =>
     .map((column) => ({ ...column, align: column.align ?? ('center' as const) }))
 )
 
-/** 去掉封装专用字段，其余原样透传给 vxe-column；未声明的列默认开启溢出省略。 */
+/** 去掉封装专用字段，其余原样透传给 vxe-column；未声明的列默认开启溢出省略与 100px 最小宽度。 */
 function getColumnBind(column: VxeColumnConfig): Record<string, unknown> {
-  const { slot, visible, showOverflow, ...rest } = column
+  const { slot, visible, showOverflow, minWidth, ...rest } = column
   void slot
   void visible
-  return { ...rest, showOverflow: showOverflow ?? true }
+  return { ...rest, minWidth: minWidth ?? 100, showOverflow: showOverflow ?? true }
 }
 
 defineExpose({ tableRef })
@@ -64,7 +67,6 @@ defineExpose({ tableRef })
       v-for="(column, index) in visibleColumns"
       :key="column.field ?? `${column.type ?? 'column'}-${index}`"
       v-bind="getColumnBind(column)"
-      min-width="100px"
     >
       <template v-if="column.slot" #default="{ row }">
         <slot :name="String(column.field)" :row="row" />

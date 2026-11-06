@@ -49,6 +49,7 @@ function onReset(): void {
           :placeholder="item.placeholder || `请输入${item.label}`"
           clearable
           @update:model-value="setField(item.prop, $event)"
+          @keyup.enter="emit('search')"
         />
         <el-select
           v-else-if="item.type === 'select'"
@@ -77,7 +78,7 @@ function onReset(): void {
           v-else-if="item.type === 'date-range'"
           :model-value="formModel[item.prop]"
           type="daterange"
-          value-format="YYYY-MM-DD"
+          :value-format="item.valueFormat ?? 'YYYY-MM-DD'"
           range-separator="至"
           start-placeholder="开始日期"
           end-placeholder="结束日期"

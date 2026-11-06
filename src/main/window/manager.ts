@@ -13,6 +13,8 @@ import { attachWindowLifecycle } from './lifecycle'
 import { attachWindowChrome } from './chrome'
 import { resolveAppIcon } from './app-icon'
 import { rendererEntry } from './entry'
+import { loadRenderer } from './load'
+import { WINDOW_BACKGROUND } from './constants'
 import * as registry from './registry'
 
 let mainWindow: BrowserWindow | null = null
@@ -66,7 +68,7 @@ export function openWindow(
     show: false,
     frame: false,
     roundedCorners: true,
-    backgroundColor: '#f4f5f7',
+    backgroundColor: WINDOW_BACKGROUND,
     icon: resolveAppIcon(),
     // 模态必须同时给 parent 与 modal，二者缺一不可
     parent: preset.modal ? (mainWindow ?? undefined) : undefined,
@@ -113,7 +115,11 @@ export function openWindow(
     })
 
     attachWindowLifecycle(win, windowId, Date.now())
-    void win.loadURL(entryHref(kind, windowId))
+    loadRenderer(win, entryHref(kind, windowId), `独立窗口 ${windowId}`, (detail) => {
+      registry.settle(windowId, { ok: false, reason: 'crashed', message: detail })
+      registry.remove(windowId)
+      if (!win.isDestroyed()) win.destroy()
+    })
   })
 }
 
@@ -124,6 +130,14 @@ export function closeWindow(contentsId: number, result?: unknown): void {
     entry.windowId,
     result === undefined ? { ok: false, reason: 'cancelled' } : { ok: true, data: result }
   )
+  if (!entry.win.isDestroyed()) entry.win.close()
+}
+
+/** 明确成功完成：没有返回值也回传 ok:true，避免被 close 的取消语义误判。 */
+export function completeWindow(contentsId: number, result?: unknown): void {
+  const entry = registry.findByContents(contentsId)
+  if (!entry) throw new Error(`[window] 未知窗口来源：${contentsId}`)
+  registry.settle(entry.windowId, { ok: true, data: result })
   if (!entry.win.isDestroyed()) entry.win.close()
 }
 

@@ -96,5 +96,12 @@ export const logger = {
     write({ level: 'error', scope: 'main', message, meta }),
   /** 渲染进程经 IPC.Log.Write 汇入，落进同一份文件。 */
   fromRenderer: (entry: LogEntry): void => write({ ...entry, scope: 'renderer' }),
+  /** 退出前结束 write stream，避免最后几行日志留在缓冲区里。 */
+  shutdown: (): void => {
+    stream?.end()
+    stream = null
+    writtenBytes = 0
+    streamDate = ''
+  },
   dir: logDir
 } as const

@@ -8,9 +8,13 @@ const shared = resolve('src/shared')
 
 // 别名按进程分面配置：主进程/preload 拿不到 @ 与 @renderer，渲染进程拿不到 @main 与 @preload。
 // 这样越界引用在构建期就会失败，而不只依赖 lint 约定。
-const nodeAlias = {
+const mainAlias = {
   '@shared': shared,
-  '@main': resolve('src/main'),
+  '@main': resolve('src/main')
+}
+
+const preloadAlias = {
+  '@shared': shared,
   '@preload': resolve('src/preload')
 }
 
@@ -35,11 +39,11 @@ export default defineConfig(({ mode }) => {
 
   return {
     main: {
-      resolve: { alias: nodeAlias },
+      resolve: { alias: mainAlias },
       define: appDefine
     },
     preload: {
-      resolve: { alias: nodeAlias },
+      resolve: { alias: preloadAlias },
       define: appDefine
     },
     renderer: {

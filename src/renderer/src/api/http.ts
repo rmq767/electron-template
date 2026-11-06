@@ -85,6 +85,23 @@ function cleanParams(params?: Record<string, unknown>): Record<string, unknown> 
   return Object.fromEntries(entries)
 }
 
+/** 后端返回的 JSON 包络通常带 msg/message；优先把它透出，避免只剩状态码。 */
+function readServerMessage(error: AxiosError): string | null {
+  const data: unknown = error.response?.data
+  if (typeof data === 'string') {
+    const text = data.trim()
+    // HTML 错误页/超长文本不适合直接弹给用户
+    return text && !text.startsWith('<') && text.length <= 300 ? text : null
+  }
+  if (!data || typeof data !== 'object') return null
+  const record = data as Record<string, unknown>
+  for (const key of ['msg', 'message', 'error'] as const) {
+    const value = record[key]
+    if (typeof value === 'string' && value.trim()) return value.trim().slice(0, 300)
+  }
+  return null
+}
+
 function toHttpError(error: AxiosError): HttpError {
   const status = error.response?.status
   if (status === 401) {
@@ -92,7 +109,11 @@ function toHttpError(error: AxiosError): HttpError {
     return new HttpError(401, '登录状态已失效，请重新登录')
   }
   if (status) {
-    return new HttpError(status, `${status} ${error.response?.statusText ?? ''}`.trim())
+    const serverMessage = readServerMessage(error)
+    return new HttpError(
+      status,
+      serverMessage ?? `${status} ${error.response?.statusText ?? ''}`.trim()
+    )
   }
   if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
     const timeout = error.config?.timeout ?? config.timeout

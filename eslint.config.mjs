@@ -5,7 +5,7 @@ import eslintPluginVue from 'eslint-plugin-vue'
 import vueParser from 'vue-eslint-parser'
 
 export default defineConfig(
-  { ignores: ['**/node_modules', '**/dist', '**/out'] },
+  { ignores: ['**/node_modules', '**/dist', '**/dist-*', '**/out', '**/release*'] },
   tseslint.configs.recommended,
   eslintPluginVue.configs['flat/recommended'],
   {
@@ -61,6 +61,12 @@ export default defineConfig(
             { name: 'vue', message: 'shared 层不得依赖 vue。' },
             { name: 'pinia', message: 'shared 层不得依赖 pinia。' },
             { name: 'element-plus', message: 'shared 层不得依赖 element-plus。' }
+          ],
+          patterns: [
+            {
+              group: ['@main/*', '@preload/*', '@renderer/*', '@/*'],
+              message: 'shared 层不得反向依赖任何进程实现。'
+            }
           ]
         }
       ]
@@ -74,7 +80,7 @@ export default defineConfig(
         {
           patterns: [
             {
-              group: ['@renderer/*', '@/*', 'vue', 'pinia', 'element-plus'],
+              group: ['@renderer/*', '@/*', '@main/*', 'vue', 'pinia', 'element-plus'],
               message: 'preload 只允许依赖 electron 与 @shared。'
             }
           ]
@@ -90,8 +96,8 @@ export default defineConfig(
         {
           patterns: [
             {
-              group: ['@renderer/*', '@/*', 'vue', 'pinia', 'element-plus'],
-              message: '主进程不得依赖渲染层运行时。'
+              group: ['@renderer/*', '@/*', '@preload/*', 'vue', 'pinia', 'element-plus'],
+              message: '主进程不得依赖渲染层运行时与 preload 实现。'
             }
           ]
         }

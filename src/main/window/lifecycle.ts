@@ -40,6 +40,9 @@ export function attachWindowLifecycle(
       exitCode: details.exitCode
     })
     registry.settle(windowId, { ok: false, reason: 'crashed', message: details.reason })
+    // 崩溃窗口不能继续占用“唯一业务窗口”名额，也不能被再次 focus
+    registry.remove(windowId)
+    if (!win.isDestroyed()) win.destroy()
   })
 
   win.webContents.on('unresponsive', () => {

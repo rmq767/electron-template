@@ -31,12 +31,12 @@ const checkNode = () => {
 
 const checks = []
 
-const add = (name, ok, detail, hint) => {
-  checks.push({ name, ok, detail, hint })
+const add = (name, ok, detail, hint, blocking = false) => {
+  checks.push({ name, ok, detail, hint, blocking })
 }
 
 const [nodeOk, nodeDetail] = checkNode()
-add('Node', nodeOk, nodeDetail, '用 nvm 切到 20.19+ 或 22.12+')
+add('Node', nodeOk, nodeDetail, '用 nvm 切到 20.19+ 或 22.12+', true)
 
 const projectDir = process.cwd()
 add(
@@ -83,11 +83,13 @@ const npmrcCache = (() => {
     return undefined
   }
 })()
+const npmrcCacheSet = npmrcCache !== undefined && npmrcCache !== ''
 add(
   '缓存 electron_config_cache',
-  npmrcCache !== undefined && isAscii(npmrcCache),
-  npmrcCache ?? '(.npmrc 未配置)',
-  '在 .npmrc 里设 electron_config_cache=D:/DevCache/electron-cache'
+  !npmrcCacheSet || (isAscii(npmrcCache) && existsSync(path.parse(npmrcCache).root)),
+  npmrcCacheSet ? npmrcCache : '(未设置，使用默认缓存目录)',
+  '在 .npmrc 里设 electron_config_cache=D:/DevCache/electron-cache（克隆到其他机器时改成该机存在的 ASCII 路径，或删除这一行）',
+  npmrcCacheSet
 )
 
 for (const dir of ['electron-cache', 'electron-builder-cache', 'tmp']) {
@@ -96,9 +98,11 @@ for (const dir of ['electron-cache', 'electron-builder-cache', 'tmp']) {
 }
 
 let failed = 0
+let blockingFailed = 0
 const width = Math.max(...checks.map((c) => c.name.length))
 for (const c of checks) {
   if (!c.ok) failed += 1
+  if (!c.ok && c.blocking) blockingFailed += 1
   console.log(`${c.ok ? 'OK  ' : 'WARN'} ${c.name.padEnd(width)}  ${c.detail}`)
   if (!c.ok) console.log(`     -> ${c.hint}`)
 }
@@ -106,5 +110,8 @@ for (const c of checks) {
 console.log(
   failed === 0
     ? '\n环境检查全部通过。'
-    : `\n有 ${failed} 项需要处理（见上方 WARN）。阻塞构建的是打包相关项，dev 模式通常仍可运行。`
+    : `\n有 ${failed} 项需要处理（见上方 WARN）。其中 ${blockingFailed} 项会阻塞安装/构建。`
 )
+
+// 阻塞项返回非零，才能被 CI / preinstall 当作闸门使用
+process.exitCode = blockingFailed > 0 ? 1 : 0

@@ -5,6 +5,8 @@ import { logger } from '@main/log/logger'
 import { rendererEntry } from './entry'
 import { attachWindowChrome } from './chrome'
 import { resolveAppIcon } from './app-icon'
+import { loadRenderer } from './load'
+import { AUTH_WINDOW_BACKGROUND } from './constants'
 
 let splashWindow: BrowserWindow | null = null
 
@@ -30,7 +32,7 @@ export function createSplashWindow(): BrowserWindow {
     skipTaskbar: true,
     show: false,
     // 与登录页/启动页底色一致，消掉首帧白闪
-    backgroundColor: '#f2f0ea',
+    backgroundColor: AUTH_WINDOW_BACKGROUND,
     title: APP_NAME,
     icon: resolveAppIcon(),
     roundedCorners: true,
@@ -51,7 +53,7 @@ export function createSplashWindow(): BrowserWindow {
   win.on('closed', () => {
     if (splashWindow === win) splashWindow = null
   })
-  void win.loadURL(rendererEntry('/splash'))
+  loadRenderer(win, rendererEntry('/splash'), '启动页')
   return win
 }
 

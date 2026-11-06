@@ -26,22 +26,24 @@ function mockVerify(payload: LoginPayload): AuthSession | null {
 export const useAuthStore = defineStore('auth', () => {
   const session = shallowRef<AuthSession | null>(null)
   const isAuthenticated = computed(() => session.value !== null)
+  // 浏览器预览没有 preload：会话只保存在内存，刷新即失效
+  const store = window.api?.store
 
   async function restore(): Promise<void> {
-    session.value = (await window.api.store.get('auth.session')) ?? null
+    session.value = (await store?.get('auth.session')) ?? null
   }
 
   async function login(payload: LoginPayload): Promise<AuthSession> {
     const next = mockVerify(payload)
     if (!next) throw new Error('账号或密码不正确（mock 账号：admin / 123456）')
     session.value = next
-    await window.api.store.set('auth.session', next)
+    await store?.set('auth.session', next)
     return next
   }
 
   async function logout(): Promise<void> {
     session.value = null
-    await window.api.store.set('auth.session', null)
+    await store?.set('auth.session', null)
   }
 
   /** 401 或 token 过期：清掉本地会话，剩下的交给守卫回登录页。 */

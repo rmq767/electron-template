@@ -46,12 +46,27 @@ const formDialogRef = ref<InstanceType<typeof FormDialog> | null>(null)
 
 const { runWithLoading } = useAbortableRequest()
 
+/** 统一错误出口：既落主进程日志，也给用户可见反馈。取消不会走到这里。 */
+function reportError(err: unknown, fallback: string): void {
+  const message = err instanceof Error ? err.message : fallback
+  window.api?.log?.error('用户模块操作失败', { message })
+  ElMessage.error(message || fallback)
+}
+
 /** 数据加载函数保持单一名字，调用点不区分来源；取消与 loading 由 runWithLoading 接管。 */
 async function getList(): Promise<void> {
-  const res = await runWithLoading(loading, (signal) => getUserListApi(queryParams.value, signal))
-  if (res?.code !== HttpStatus.SUCCESS) return
-  rows.value = res.rows
-  total.value = res.total
+  try {
+    const res = await runWithLoading(loading, (signal) => getUserListApi(queryParams.value, signal))
+    if (!res) return
+    if (res.code !== HttpStatus.SUCCESS) {
+      ElMessage.error(res.msg || '加载用户列表失败')
+      return
+    }
+    rows.value = res.rows
+    total.value = res.total
+  } catch (err) {
+    reportError(err, '加载用户列表失败')
+  }
 }
 
 const { onSearch, onReset, onPagination } = useListPage({ getList, pagination })
@@ -65,12 +80,21 @@ function handleEdit(row: UserRow): void {
 }
 
 async function handleSaved(value: UserDTO): Promise<void> {
-  const res = await saveUserApi(value)
-  if (res.code !== HttpStatus.SUCCESS) return
-  // 新增落到列表顶部，回到第一页才不会看不见
-  if (!value.id) pagination.pageNum = 1
-  await getList()
-  ElMessage.success('已保存')
+  try {
+    const res = await saveUserApi(value)
+    if (res.code !== HttpStatus.SUCCESS) {
+      ElMessage.error(res.msg || '保存失败')
+      return
+    }
+    // 新增落到列表顶部，回到第一页才不会看不见
+    if (!value.id) pagination.pageNum = 1
+    await getList()
+    ElMessage.success('已保存')
+    // 保存成功后再关弹窗；失败时保留输入
+    formDialogRef.value?.close()
+  } catch (err) {
+    reportError(err, '保存用户失败')
+  }
 }
 
 async function handleDelete(row: UserRow): Promise<void> {
@@ -79,12 +103,19 @@ async function handleDelete(row: UserRow): Promise<void> {
     confirmText: '删除'
   })
   if (!ok) return
-  const res = await deleteUserApi(row.id)
-  if (res.code !== HttpStatus.SUCCESS) return
-  ElMessage.success('已删除')
-  // 远程分页不会自己回退页码，删掉本页最后一条时往前退一页
-  if (rows.value.length <= 1 && pagination.pageNum > 1) pagination.pageNum -= 1
-  await getList()
+  try {
+    const res = await deleteUserApi(row.id)
+    if (res.code !== HttpStatus.SUCCESS) {
+      ElMessage.error(res.msg || '删除失败')
+      return
+    }
+    ElMessage.success('已删除')
+    // 远程分页不会自己回退页码，删掉本页最后一条时往前退一页
+    if (rows.value.length <= 1 && pagination.pageNum > 1) pagination.pageNum -= 1
+    await getList()
+  } catch (err) {
+    reportError(err, '删除用户失败')
+  }
 }
 
 function roleLabel(role: UserDTO['role']): string {

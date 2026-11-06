@@ -37,6 +37,9 @@ export const windowApi = {
   /** 不带 result 就是「取消」，带 result 就是「完成」。 */
   close: (result?: unknown): Promise<void> => invoke(IPC.Window.Close, { result }),
 
+  /** 成功完成但没有返回值时用它，避免被当成取消。 */
+  complete: (result?: unknown): Promise<void> => invoke(IPC.Window.Complete, { result }),
+
   getPayload: <K extends WindowKind>(): Promise<WindowPayload<K>> =>
     invoke(IPC.Window.GetPayload) as Promise<WindowPayload<K>>,
 

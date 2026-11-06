@@ -15,6 +15,8 @@
 >
 > **模板默认不内置业务独立窗口**：`window-spec.ts` 的 `WindowKind` 与 `presets.ts`
 > 都是空的，manager / registry / `WindowGate` 地基保留；下面的配方用于新增窗口。
+> 新增的 `/w/xxx` 路由**必须写 `meta: { window: true }`**：漏写或页面缺失会落到
+> `/w/__missing__` 兜底页（可关闭），而不是无限重定向或空白窗。
 
 记忆口诀：**同屏叠层用 dialog，脱离同屏用 window**；
 **用户可能想同时看两张表 → window**。
@@ -80,7 +82,7 @@
 出现"填表时必须对照底表数据"（触发 1）、"需要独立任务栏条目或副屏"（触发 2）、
 "长任务要跨路由存活"（触发 3）时升级。
 
-升级动作只有一步：给这个表单加一条 window preset + 一条 `/w/xxx` 路由，
+升级动作只有一步：给这个表单加一条 window preset + 一条 `/w/xxx` 路由（`meta: { window: true }`），
 把 `<UserForm :model @done @cancel>` 原样搬过去。
 **因为表单主体组件被约定为不 import 弹层、不感知容器，所以不重写任何业务逻辑。**
 模板里 `views/system/user/components/user-form.vue` 现在通过 `form-dialog` 装进 `my-dialog`；

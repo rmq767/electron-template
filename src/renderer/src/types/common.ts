@@ -3,8 +3,7 @@ import type { VxeColumnProps } from 'vxe-table'
 /** 表单容器模式：统一用 as const，不在项目里使用 enum。 */
 export const FormType = {
   ADD: 'add',
-  EDIT: 'edit',
-  VIEW: 'view'
+  EDIT: 'edit'
 } as const
 
 export type FormType = (typeof FormType)[keyof typeof FormType]

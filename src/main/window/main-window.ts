@@ -5,6 +5,8 @@ import { LANDING_PATH } from '@shared/constants/navigation'
 import { rendererEntry } from './entry'
 import { attachWindowChrome } from './chrome'
 import { resolveAppIcon } from './app-icon'
+import { loadRenderer } from './load'
+import { WINDOW_BACKGROUND } from './constants'
 
 /**
  * 主窗口。无系统边框，标题栏由渲染层绘制（与登录窗、独立窗口保持同一套桌面外观）。
@@ -21,7 +23,7 @@ export function createMainWindow(): BrowserWindow {
     roundedCorners: true,
     // 先建后显：配合 backgroundColor 消掉首帧白闪
     show: false,
-    backgroundColor: '#f4f5f7',
+    backgroundColor: WINDOW_BACKGROUND,
     title: APP_NAME,
     icon: resolveAppIcon(),
     autoHideMenuBar: true,
@@ -38,7 +40,7 @@ export function createMainWindow(): BrowserWindow {
   attachWindowChrome(mainWindow)
 
   // 何时 show 由 app-flow 决定：登录/启动页退场前，主窗口只加载不显示。
-  void mainWindow.loadURL(rendererEntry(LANDING_PATH))
+  loadRenderer(mainWindow, rendererEntry(LANDING_PATH), '主窗口')
 
   return mainWindow
 }

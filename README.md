@@ -21,7 +21,7 @@ pnpm dev         # 起窗 + 三端热更（含主进程，见下文 -w）
 ```
 
 开发环境要求：Node `^20.19 || >=22.12`、pnpm 9/10、git。
-装依赖前先跑一次 `pnpm check:env`，它会检查缓存目录是否落在 ASCII 路径上。
+装依赖前先跑一次 `pnpm check:env`，它会检查缓存目录是否落在 ASCII 路径上；阻塞项会返回非零退出码。
 
 启动分两条路径：**需要登录**时先出现独立登录窗（400×560、无系统边框），登录完成由主进程关闭登录窗并展示主窗口；
 **无需登录或已有会话**时先出现启动页（400×460），主窗口在后台加载但保持隐藏；启动页等主窗口渲染完成（`app:ui-ready`）并达到最短展示时间后关闭，这时主窗口才会出现。
@@ -35,17 +35,17 @@ pnpm dev         # 起窗 + 三端热更（含主进程，见下文 -w）
 | 命令                        | 作用                                                                                                                              |
 | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | `pnpm dev`                  | `electron-vite dev -w`。**`-w` 是必须的**：不加它主进程与 preload 的改动不会重建重启（实测确认，这是 electron-vite 6 的默认行为） |
-| `pnpm dev:renderer`         | 只起渲染层 dev server，不拉 Electron                                                                                              |
-| `pnpm build`                | clean + typecheck + 三端构建，产物在 `out/`                                                                                       |
+| `pnpm build`                | typecheck + clean + 三端构建，产物在 `out/`                                                                                       |
 | `pnpm clean`                | 只清空 `out/`，不碰 `release/` 与用户数据                                                                                         |
 | `pnpm build:win`            | 上一步 + electron-builder 出 NSIS 安装包与 portable                                                                               |
 | `pnpm build:icons`          | 从 `resources/<APP_ICON>` 生成 `build/icon.ico` / `icon.icns` / `icon.png`，换图标后执行一次即可                                  |
 | `pnpm build:unpack`         | 只出 `win-unpacked/`，验证 file:// 加载最快（默认在 `release/`）                                                                  |
 | `pnpm typecheck`            | `tsc -p tsconfig.node.json` + `vue-tsc -p tsconfig.web.json`，两套 lib 分开                                                       |
-| `pnpm lint` / `pnpm format` | ESLint 10 flat config / Prettier                                                                                                  |
-| `pnpm check:env`            | 环境与路径自检                                                                                                                    |
+| `pnpm lint` / `pnpm format` | ESLint 10 flat config（含 prettier 规则，`--max-warnings=0`）/ Prettier                                                           |
+| `pnpm format:check`         | 只检查格式，不改文件；适合 CI                                                                                                     |
+| `pnpm check:env`            | 环境与路径自检，阻塞项返回非零                                                                                                    |
 
-提交前自动跑 `lint-staged`（eslint --fix 已内含 prettier 规则）+ 全量 `typecheck`。
+提交前自动跑 `lint-staged`（`eslint --fix` + `prettier --write`）+ 全量 `typecheck`；格式问题会让 `lint` 直接失败。
 
 ---
 
@@ -86,6 +86,7 @@ src/shared    共用层    纯类型 + 常量 + 无副作用函数，不得 impo
 - 需要返回值一律 `invoke`。**`send` 全项目不用**：它没有返回、无法感知失败、错误不会 reject。
 - 主进程主动推送走 `EventSchema` + `webContents.send`，`on()` 返回解绑函数，`onScopeDispose` 里必须解绑（多窗口最常见的泄漏点）。
 - 失败口径：**可预期的业务结果作为返回值**（如用户取消文件对话框返回 `null`、窗口取消返回 `{ok:false, reason:'cancelled'}`）；**真正的异常一律 throw**，由 Promise reject 承载。
+- 窗口成功完成但没有返回值时用 `window:complete`（回 `{ok:true}`），`window:close` 只表示取消；两者都走同一个 `closed` 兜底。
 - 系统级阻塞对话框要标 `interactive: true`，否则"用户点了 3 秒"会被记成慢调用告警。
 
 ### 序列化红线
@@ -100,10 +101,9 @@ src/shared    共用层    纯类型 + 常量 + 无副作用函数，不得 impo
 **这是本模板最该先读的一页** → [docs/window-vs-dialog.md](docs/window-vs-dialog.md)
 
 一句话：**默认用 dialog**，只有命中"并排操作 / 独立任务栏条目 / 长任务跨路由存活 / 崩溃隔离 / 独立渲染上下文"这 5 条之一才用独立窗口。
-当前模板**保留独立窗口地基但不内置业务窗口**：新增窗口 = `shared/ipc/window-spec.ts` 一条契约
-
-- `main/window/presets.ts` 一条外观 + `/w/:kind` 路由与页面；同时只允许一个业务独立窗口，
-  第二个 open 返回 `busy`，并行多开列在后续需求。
+当前模板**保留独立窗口地基但不内置业务窗口**：新增窗口 = `shared/ipc/window-spec.ts` 一条契约 + `main/window/presets.ts` 一条外观 + `renderer/src/views` 下一个页面 + `/w/:kind` 路由（**必须写 `meta: { window: true }`**）；
+路由漏了 `meta.window` 或页面不存在时，会落到 `/w/__missing__` 兜底页而不是无限重定向。
+同时只允许一个业务独立窗口，第二个 open 返回 `busy`，并行多开列在后续需求。
 
 ---
 
@@ -120,6 +120,10 @@ src/shared    共用层    纯类型 + 常量 + 无副作用函数，不得 impo
 | `APP_FEATURE_LOGIN`          | `false` = 跳过登录独立窗口与鉴权守卫                                                                          |
 | `APP_SPLASH_MIN_MS`          | 无需登录时启动页的最短展示时间（毫秒），默认 900                                                              |
 | `RENDERER_VITE_API_BASE_URL` | 后端基址。**留空 = 不连后端**，`api/http` 会给出可读报错而不是假装能跑；同时按构建期插进 CSP 的 `connect-src` |
+
+> `pnpm dev` 会同时起渲染层 dev server 与 Electron；没有“只起渲染层、不拉 Electron”的脚本。若用其他方式单独预览 Vite 页面，没有 preload，登录态与主题会退化为内存状态。
+>
+> `.npmrc` 的 `electron_config_cache` 带盘符，是当前机器的值；克隆到其他机器时改成该机存在的 ASCII 路径，`pnpm check:env` 会校验盘符与 ASCII。
 
 `APP_*` 不是 Vite 前缀变量：`electron.vite.config.ts` 用 `loadEnv` 读取后通过 `define` 注入主进程、
 preload 与渲染层，业务代码只从 `src/shared/constants/app.ts` 读。`electron-builder.cjs` 也读同一份
@@ -198,7 +202,7 @@ const { onSearch, onReset, onPagination } = useListPage({ getList, pagination })
   列配置放同目录 `index.ts`，表单弹窗放 `components/form-dialog.vue`。
 - 接口按模块放 [api/system/user.ts](src/renderer/src/api/system/user.ts)，函数写成 `xxxApi(params, signal?)`。
   当前是纯前端 mock，**接真实后端时只改这个文件**：函数体换成
-  `request<PageResponse<UserRow>>({ url, method: 'get', params, signal })`，页面与类型都不用动。
+  `request<PageResponse<UserRow>>({ url, method: 'GET', params, signal })`，页面与类型都不用动。
 - 请求层是 [api/http.ts](src/renderer/src/api/http.ts) 里的**一个** axios 实例，拦截器只注入 token 与归一错误，
   不在别处新建实例、也不在拦截器里弹提示。真实后端必须放行跨域（生产包从 `file://` 发起，Origin 为 `null`）；
   CSP 的 `connect-src` 已按 `RENDERER_VITE_API_BASE_URL` 构建期插值，漏配会表现为 `Failed to fetch`。
@@ -281,7 +285,7 @@ pnpm build:win
 - 未签名：`Get-AuthenticodeSignature ...setup.exe` 返回 `NotSigned`；这是没有证书时的预期结果。
 - 中文项目路径是**输出目录移动阶段**的实际阻塞点，不是下载阶段；`BUILD_OUTPUT_DIR` 已作为正式逃生口。
 - 打包前的 `pnpm clean` 只清 `out/`；`release*/`、`dist*/` 已从 asar 排除。
-- 引入 vxe-table 后**尚未重新打包测量** `app.asar` 体积；本次 `pnpm build` 通过，renderer 产物约 3.34MB JS + 1.10MB CSS，后续打包装包时需要重新核对。
+- 引入 vxe-table 后**尚未重新打包测量** `app.asar` 体积；本次 `pnpm build` 通过，renderer 产物约 3.50MB JS + 1.10MB CSS，后续打包装包时需要重新核对。
 
 ---
 

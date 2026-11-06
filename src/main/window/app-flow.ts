@@ -188,6 +188,8 @@ export function completeLoginFrom(contentsId: number): void {
   if (!login || login.isDestroyed() || login.webContents.id !== contentsId) {
     throw new Error('[app] 只有登录窗口可以完成登录')
   }
+  // 登录窗是独立渲染进程，不能只凭“来源正确”就放行：必须真的写入了会话
+  if (!hasStoredSession()) throw new Error('[app] 登录尚未完成，缺少会话')
 
   openMainWindow({ showWhenReady: false })
   logger.info('登录完成，等待主窗口就绪后切换', { contentsId })
@@ -204,6 +206,8 @@ export function returnToLogin(source: BrowserWindow): void {
       login.focus()
     }
   }
-  if (login.isVisible()) reveal()
+  // 已有且已加载完成的登录窗不会再触发 ready-to-show；只有仍在加载时才等待
+  const loaded = login.webContents.getURL() !== '' && !login.webContents.isLoading()
+  if (login.isVisible() || loaded) reveal()
   else login.once('ready-to-show', reveal)
 }

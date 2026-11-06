@@ -8,13 +8,13 @@
     "check:env": "node scripts/check-env.mjs",
     "clean": "node scripts/clean.mjs",
     "format": "prettier --write .",
-    "lint": "eslint --cache .",
+    "format:check": "prettier --check .",
+    "lint": "eslint --cache --max-warnings=0 .",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "vue-tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "pnpm typecheck:node && pnpm typecheck:web",
     "start": "electron-vite preview",
     "dev": "electron-vite dev -w",
-    "dev:renderer": "electron-vite dev --rendererOnly",
     "build": "pnpm typecheck && pnpm clean && electron-vite build",
     "build:icons": "node scripts/build-icons.mjs",
     "postinstall": "install-electron && electron-builder install-app-deps",
@@ -57,8 +57,14 @@
     "vxe-table": "^4.23.14"
   },
   "lint-staged": {
-    "*.{ts,mts,tsx,vue}": "eslint --fix",
+    "*.{ts,mts,tsx,vue}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
     "*.{css,scss,json,jsonc,md,yml,yaml}": "prettier --write"
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

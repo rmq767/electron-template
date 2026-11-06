@@ -2,7 +2,7 @@
  * 独立窗口的类型契约。模板默认不内置业务窗口，地基保留；新增一种窗口只需三步：
  * 1) 这里加一条 kind 与 props/result；
  * 2) main/window/presets.ts 加一条外观；
- * 3) renderer/src/windows 加一个页面并在路由挂 /w/:kind。
+ * 3) renderer/src/views 下加一个页面，并在 router/routes.ts 挂 /w/:kind（必须写 meta.window: true）。
  * 业务逻辑不用重写——表单主体本就不感知容器。
  */
 export type WindowKind = never

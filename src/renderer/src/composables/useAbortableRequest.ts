@@ -66,13 +66,16 @@ export function useAbortableRequest(): {
   ): Promise<T | undefined> {
     const controller = start(key)
     loading.value = true
-    const result = await track(
-      key,
-      controller,
-      Promise.resolve().then(() => fetcher(controller.signal))
-    )
-    if (!controller.signal.aborted) loading.value = false
-    return result
+    try {
+      return await track(
+        key,
+        controller,
+        Promise.resolve().then(() => fetcher(controller.signal))
+      )
+    } finally {
+      // 真失败也要收尾；被取代的请求不能熄灭最新请求的 loading
+      if (!controller.signal.aborted) loading.value = false
+    }
   }
 
   onScopeDispose(() => {

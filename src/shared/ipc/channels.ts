@@ -16,6 +16,7 @@ export const IPC = {
   Window: {
     Open: 'window:open',
     Close: 'window:close',
+    Complete: 'window:complete',
     GetPayload: 'window:get-payload',
     PushProps: 'window:push-props',
     Focus: 'window:focus',

@@ -18,8 +18,8 @@ src/renderer   渲染进程：普通 Vue 应用，禁 Node，只认 window.api
 
 边界靠三重机制而非口头约定：
 
-1. **别名分面**：`main`/`preload` 的 `resolve.alias` 里没有 `@` 与 `@renderer`，渲染层的别名里没有 `@main`/`@preload` → 越界 import 在构建期 `TS2307`。
-2. **eslint `no-restricted-imports`**：拦住别名管不到的情况（`shared` 引 electron、渲染层引 `electron` 包）。
+1. **别名分面**：`main` 只有 `@main`/`@shared`，`preload` 只有 `@preload`/`@shared`，渲染层只有 `@`/`@renderer`/`@shared` → 越界 import 在构建期 `TS2307`/解析失败。
+2. **eslint `no-restricted-imports`**：拦住别名管不到的情况（`shared` 引 electron、preload 引 `@main`、main 引 `@preload`、渲染层引 `electron` 包）。
 3. **`satisfies Api`**：preload 的实现与 `Api` 接口在编译期对齐，少一个方法直接报错。
 
 判断口径：**只有需要 Node 能力的逻辑才进主进程**。
@@ -64,9 +64,11 @@ main/window/entry.ts         单入口 hash 路由，主窗/登录窗/启动页/
 main/window/app-icon.ts      从 .env 的 APP_ICON 解析运行时图标
 ```
 
-新增一种业务窗口 = 一条 props/result 契约 + 一条 preset + 一条 `/w/:kind` 路由与页面。不建继承树。
+新增一种业务窗口 = 一条 props/result 契约 + 一条 preset + 一条 `/w/:kind` 路由与页面。
+路由**必须写 `meta: { window: true }`**：漏写或页面不存在时会落到 `/w/__missing__` 兜底页
+（渲染 `window-shell`，可关闭），不会无限重定向或留下没有标题栏的空白窗。
 **模板默认不内置业务窗口**：`WindowKind` 为空、`presets.ts` 为空对象，
-但 manager / registry / lifecycle / `WindowGate` 与 `/w` 机制全部保留；不要因为模板瘦身删掉地基。
+但 manager / registry / lifecycle / `WindowGate`（已全局注册）与 `/w` 兜底机制全部保留；不要因为模板瘦身删掉地基。
 登录窗与启动页不进 registry：registry 的语义是「带参数进、带结果出的业务弹层」，
 它们是一次性的应用入口切换，不属于这个生命周期模型。
 
@@ -85,7 +87,9 @@ main/window/app-icon.ts      从 .env 的 APP_ICON 解析运行时图标
 
 `openWindow()` 返回的 Promise 由 registry 的 `pending[]` 持有。
 `win.on('closed')` 里**无条件 settle**（用户点 X、ESC、父窗口关闭、崩溃都走这里），
-崩溃经 `render-process-gone` 返回 `{ok:false, reason:'crashed'}`。
+崩溃经 `render-process-gone` 返回 `{ok:false, reason:'crashed'}`，然后移除并销毁该窗口，
+避免崩溃窗口继续占用“唯一业务窗口”名额。所有窗口的 `loadURL` 都经 `main/window/load.ts`：
+`did-fail-load` 会写日志并 settle/destroy，不会留下隐藏窗口与永久悬挂的 Promise。
 漏掉兜底 = 调用方 `await` 永久悬挂，这是多窗口体系最高发的缺陷，
 因此模板把它写成 manager 里唯一一处关闭路径。示例窗口已随模板瘦身删除；
 新增业务窗口后，可按 `docs/window-vs-dialog.md` 的边界案例做关闭/取消验证。
@@ -93,6 +97,7 @@ main/window/app-icon.ts      从 .env 的 APP_ICON 解析运行时图标
 **当前只允许一个业务独立窗口**：`manager.openWindow` 先查 registry 里唯一存活的窗口。
 同 kind 再次打开时聚焦 + `pushProps(新参数)`，调用方的 Promise 挂到同一个 entry 的 `pending[]`
 上，窗口关闭时一起兑现；不同 kind 直接返回 `{ ok: false, reason: 'busy' }`。
+`window:open` / `window:push-props` / `window:focus` 只接受主窗口来源，业务窗口之间不能互相操纵。
 多窗口并行与跨窗口同步都列入范围收缩，等出现真实需求再放开。
 
 **Pinia 不跨窗口共享**（每窗口独立渲染进程 = 独立 store 实例）。
@@ -114,11 +119,16 @@ main/window/app-icon.ts      从 .env 的 APP_ICON 解析运行时图标
 
 - 需要结果一律 `invoke`；**`send` 全项目不用**。
 - 可预期的业务结果用返回值（取消返回 `null` / `{ok:false}`），真异常一律 throw。
+- 窗口关闭有两条路径：`window:close` 表示取消（可带 result），`window:complete` 表示成功完成
+  （即使没有返回值也回 `{ok:true}`）；有返回值的窗口仍可用 `close(result)` 完成。
 - 交互型通道（系统对话框）标 `interactive: true`，否则"用户思考了 3 秒"会被记成慢调用告警，噪声会教人忽略告警。
 - 事件订阅必须解绑，`onScopeDispose` 统一处理。
+- `store:get/set` 与 `log:write` 在主进程侧做运行时校验：未知 key、形状不符的值、非法 level 一律拒绝；
+  日志 message 截断到 4000 字符，避免脏输入污染 settings.json 与日志。
 - 窗口控件（`window:minimize` / `toggle-maximize` / `get-state` / `close-self`）只作用于
   `senderId` 对应的那个窗口；最大化状态经 `evt:window-state` 回推，渲染层不靠猜。
-- `app:complete-login` 只接受登录窗来源，`app:show-login` 只接受主窗口来源，
+- `window:open` / `push-props` / `focus` 只接受主窗口来源；业务窗口之间不能互相操纵。
+- `app:complete-login` 只接受登录窗来源且必须已写入会话，`app:show-login` 只接受主窗口来源，
   `app:ui-ready` 只接受主窗口来源——窗口切换与启动页退场都是特权动作，
   不做「谁调都行」的通用通道（其他窗口也会跑同一份 bootstrap，非主窗通知直接忽略）。
 
@@ -239,6 +249,10 @@ keep-alive 的 include 直接复用路由名。
 对外是对象入参形状 `request<T>({ url, method, params, data, signal, timeout })`，实现是一个 axios 实例：
 `params` 里 undefined / null / 空串不下发，`signal` 由 `useAbortableRequest` 注入，超时默认 15s。
 拦截器只做注入 token、拆响应体、把失败归一成 `HttpError` 三件事；**不弹提示**，否则取消与真失败会混成一层。
+`HttpError` 优先透出后端包络里的 `msg/message`，拿不到才退回状态码；401 会去重后显式切回登录窗
+（主窗口调 `app:show-login`，浏览器预览走 `/login`），不再依赖“下一次导航”才生效。
+`useAbortableRequest.runWithLoading` 用 `finally` 收尾：取消不熄灭新请求的 loading，真失败也会熄灭；
+页面仍需 `catch` 并给用户可见反馈，模板的 `getList` / 保存 / 删除已按这个形状示范。
 响应包络 `ApiResponse`（`code/msg/data`）与 `PageResponse`（`code/msg/rows/total`）不在这层拆，
 页面按 `res.code === HttpStatus.SUCCESS` 判断，判码用常量不写死数字。
 CSP 的 `connect-src` 由 `index.html` 里的 `%RENDERER_VITE_API_BASE_URL%` 构建期插值；
@@ -248,6 +262,8 @@ CSP 的 `connect-src` 由 `index.html` 里的 `%RENDERER_VITE_API_BASE_URL%` 构
 未配置 `RENDERER_VITE_API_BASE_URL` 时 `request()` 抛可读错误，**不虚构后端接口**；
 用户模块当前由 `api/system/user.ts` 的 mock 提供数据，换成真接口只改这一个文件。
 `userData` 的实际路径由 `APP_NAME` 决定（Windows 为 `%APPDATA%/<APP_NAME>`）。
+`settings.json` 的写入先落临时文件再 `rename` 原子替换；主进程对 `store:get/set` 做 key 白名单与值形状校验，
+非法输入不会污染文件。
 
 `bootstrap()` 先 `hydrate()` + `restore()`，再 `app.use(router)` + `mount()`：
 router 安装即触发首次导航，提前安装会让守卫在 store 未水合时判定未登录，
@@ -277,7 +293,7 @@ router 安装即触发首次导航，提前安装会让守卫在 store 未水合
 - 启动页不是「遮白闪」的万能方案：白闪仍靠主窗口 `show: false` + `ready-to-show` + `backgroundColor` 解决。
 
 `APP_FEATURE_LOGIN=false` 时跳过登录窗与鉴权守卫，直接走启动页 → 主窗口。
-token 存 userData；401 → `clear()` → 守卫请求 `app:show-login`（浏览器预览退回 `/login`）。
+token 存 userData；401 → `clear()` → 去重后直接请求 `app:show-login`（浏览器预览退回 `/login`）。
 
 ---
 
@@ -286,8 +302,9 @@ token 存 userData；401 → `clear()` → 守卫请求 `app:show-login`（浏�
 `contextIsolation: true`、`nodeIntegration: false`、`sandbox: false`
 （官方 electron-vite 模板即为 false：沙箱化的 preload 无法加载打包后的模块）。
 `setWindowOpenHandler` 在所有窗口上统一 deny（应用内不弹浏览器窗口，新窗口走 manager），
-`will-navigate` 拦截跳出文档，外链仅 `http(s)` 交系统浏览器，
+`will-navigate` 拦截跳出文档（同源 + 同 pathname，不用前缀比较），外链仅 `http(s)` 交系统浏览器，
 生产 `index.html` 带 CSP，preload 在 `!process.contextIsolated` 时**拒绝挂载**而不是退化成直接挂 window 全局。
+`session.setPermissionRequestHandler` 默认拒绝摄像头/麦克风/通知等未列出的系统权限。
 
 不做云端错误上报（隐私 + 内网出口限制）。
 
@@ -344,6 +361,6 @@ token 存 userData；401 → `clear()` → 守卫请求 `app:show-login`（浏�
 | 构建产物膨胀 / 旧资源入包              | `out/renderer/assets` 的 hash chunk 不会自动清空，269 个文件里混着旧 PascalCase chunk；`files` 还会把项目内旧的 `release*/` 打进 asar，实测 `app.asar` 达 389MB。修复：build 前 `pnpm clean`，并排除 `release*/**`、`dist*/**`；修复后 `app.asar` 3MB                                                                                                                                                                                                                                                                                               |
 | 列表页组件体系（历史，含已删页面）     | 2026-11-05 CDP 真实指针实测：搜索过滤（12 → 1 条）、分页第 2 页、新增/编辑/删除弹窗、角色抽屉、独立窗口取消回传、亮/暗主题；`pnpm typecheck` / `lint` / `build` 全通过。首轮运行期 console 报 vxe tooltip 模式与 CSP `font-src` 拦截，已分别改为 `tooltip-config.mode=title` 与 `font-src 'self' data:`，复测无 Vue/vxe 告警                                                                                                                                                                                                                        |
 | 模板瘦身 / 亮色 chrome（2026-11-05）   | CDP 真实指针 + Win32：落地页 `#/system/user`，侧栏只剩“用户管理”；亮色 computed `titlebar rgb(247,248,250)`、`sidebar rgb(251,252,253)`，暗色 `rgb(11,14,18)` / `rgb(14,17,21)`，主题按钮双向切换正常；退出登录 → 登录窗（Win32 `IsWindowVisible=true`，主窗目标消失）→ 登录 → 主窗 `#/system/user`；`APP_SPLASH_MIN_MS=2500` 时启动页创建、主窗 `visible:false` 后台加载、约 2.5s 后主窗显示且仅一个窗口可见；用户列表搜索 12→1、重置 1→10、弹窗遮罩 1280×802 全窗覆盖并居中、取消后恢复；控制台零告警；`pnpm typecheck` / `lint` / `build` 全通过 |
-| vxe-table 引入后打包体积               | **未重新打包测量**。`pnpm build` 通过，renderer 产物约 3.34MB JS + 1.10MB CSS；`app.asar` 体积需在下次 `build:unpack` 时重测，不沿用旧的 3MB 结论                                                                                                                                                                                                                                                                                                                                                                                                   |
+| vxe-table 引入后打包体积               | **未重新打包测量**。2026-11-06 复测 `pnpm build` 通过，renderer 产物约 3.50MB JS + 1.10MB CSS；`app.asar` 体积需在下次 `build:unpack` 时重测，不沿用旧的 3MB 结论                                                                                                                                                                                                                                                                                                                                                                                   |
 | Node `fs.rmSync` 清理 `out/`           | Node 24.9 在本机中文路径下对 `out/` 递归删除会**静默失败**（不抛错也不删除）；改为逐项 `unlinkSync` / `rmdirSync` 后可靠清空                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | `electron-builder` 命令被配置遮蔽      | 配置文件原名 `electron-builder.js` 与 CLI 同名；Windows `cmd` 的 `where` 会优先命中当前目录的配置文件，`build:win` 里的 `electron-builder` 实际执行了配置文件并静默退出 0（没有安装包）。改名为 `electron-builder.cjs` 后恢复                                                                                                                                                                                                                                                                                                                       |

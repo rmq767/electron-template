@@ -1,13 +1,31 @@
 import { IPC } from '@shared/ipc/channels'
-import { closeWindow, focusWindow, getPayload, openWindow, pushProps } from '@main/window/manager'
+import {
+  closeWindow,
+  completeWindow,
+  focusWindow,
+  getMainWindow,
+  getPayload,
+  openWindow,
+  pushProps
+} from '@main/window/manager'
 import { windowFromContentsId } from '@main/window/chrome'
 import { handle } from './handle'
+
+function requireMainWindow(contentsId: number): void {
+  const win = windowFromContentsId(contentsId)
+  if (!win || win !== getMainWindow()) {
+    throw new Error('[window] 只有主窗口可以操作其他窗口')
+  }
+}
 
 export function registerWindowHandlers(): void {
   // open 的 Promise 要到窗口关闭才兑现，耗时天然不可控，标 interactive
   handle(
     IPC.Window.Open,
-    ({ kind, props, options }, ctx) => openWindow(kind, props, options, ctx.senderId),
+    ({ kind, props, options }, ctx) => {
+      requireMainWindow(ctx.senderId)
+      return openWindow(kind, props, options, ctx.senderId)
+    },
     { interactive: true }
   )
 
@@ -18,12 +36,20 @@ export function registerWindowHandlers(): void {
 
   handle(IPC.Window.GetPayload, (_payload, ctx) => getPayload(ctx.senderId))
 
-  handle(IPC.Window.PushProps, ({ windowId, props }) => {
+  // 推送参数与聚焦是主窗口的特权：业务窗口之间不允许互相操纵
+  handle(IPC.Window.PushProps, ({ windowId, props }, ctx) => {
+    requireMainWindow(ctx.senderId)
     pushProps(windowId, props)
   })
 
-  handle(IPC.Window.Focus, ({ windowId }) => {
+  handle(IPC.Window.Focus, ({ windowId }, ctx) => {
+    requireMainWindow(ctx.senderId)
     focusWindow(windowId)
+  })
+
+  // 明确“成功且无返回值”的完成路径；close 仍然表示取消
+  handle(IPC.Window.Complete, ({ result }, ctx) => {
+    completeWindow(ctx.senderId, result)
   })
 
   // 标题栏控件只作用于发起调用的窗口；主窗口、登录窗、独立窗口共用

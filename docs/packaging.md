@@ -54,6 +54,8 @@ pnpm check:env
 `pnpm check:env` 会检查 Node 版本、项目路径、`TMP` / `TEMP`、Electron 缓存与
 electron-builder 缓存是否在 ASCII 路径。当前机器 `%USERPROFILE%` 含中文，
 缓存目录必须显式指到 ASCII 路径；否则 Electron 解压与 NSIS 工具链下载可能失败。
+Node 版本与 `.npmrc` 的 `electron_config_cache` 盘符不合法时，脚本会返回非零退出码；
+克隆到其他机器时先改成该机存在的 ASCII 路径。
 
 ### 1.2 命令
 

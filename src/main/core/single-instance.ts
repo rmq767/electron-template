@@ -1,4 +1,5 @@
 import { app, BrowserWindow } from 'electron'
+import { getMainWindow } from '@main/window/manager'
 import { logger } from '@main/log/logger'
 
 /**
@@ -19,7 +20,8 @@ export function acquireSingleInstanceLock(): boolean {
     return false
   }
   app.on('second-instance', () => {
-    const win = BrowserWindow.getAllWindows().find((item) => !item.isDestroyed())
+    // 优先聚焦主窗口；启动页/登录窗只是启动面
+    const win = getMainWindow() ?? BrowserWindow.getAllWindows().find((item) => !item.isDestroyed())
     if (!win) return
     if (win.isMinimized()) win.restore()
     win.focus()

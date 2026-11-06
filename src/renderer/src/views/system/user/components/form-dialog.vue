@@ -30,8 +30,8 @@ function close(): void {
 async function submit(): Promise<void> {
   const value = await formRef.value?.submit()
   if (!value) return
+  // 只把结果交给页面；保存成功由页面关窗，失败时保留输入
   emit('success', value)
-  close()
 }
 
 defineExpose({ open, close })

@@ -21,6 +21,7 @@ export interface RequestSchema {
   [IPC.App.UiReady]: { req: undefined; res: void }
   [IPC.Window.Open]: { req: OpenWindowInput; res: OpenOutcome<unknown> }
   [IPC.Window.Close]: { req: { result?: unknown }; res: void }
+  [IPC.Window.Complete]: { req: { result?: unknown }; res: void }
   [IPC.Window.GetPayload]: { req: undefined; res: WindowPayload }
   [IPC.Window.PushProps]: { req: { windowId: string; props: unknown }; res: void }
   [IPC.Window.Focus]: { req: { windowId: string }; res: void }

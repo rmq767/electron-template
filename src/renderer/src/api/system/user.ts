@@ -10,9 +10,9 @@ import {
 /**
  * 用户模块接口。当前是纯前端 mock：数据、过滤、分页都落在本文件，页面拿到的仍是同一套包络。
  * 接真实后端时逐函数换成 request()，页面、类型与竞态防护都不用动，mockDelay 一并删掉：
- *   request<PageResponse<UserRow>>({ url, method: 'get', params, signal })
- *   request<ApiResponse<UserRow>>({ url, method: value.id ? 'put' : 'post', data: value })
- *   request<ApiResponse>({ url, method: 'delete', data: ids })
+ *   request<PageResponse<UserRow>>({ url, method: 'GET', params, signal })
+ *   request<ApiResponse<UserRow>>({ url, method: value.id ? 'PUT' : 'POST', data: value })
+ *   request<ApiResponse>({ url, method: 'DELETE', data: ids })
  */
 
 /** 列表查询参数：筛选字段直接来自搜索表单，未填的字段请求层会跳过。 */

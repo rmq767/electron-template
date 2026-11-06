@@ -5,6 +5,8 @@ import { logger } from '@main/log/logger'
 import { rendererEntry } from './entry'
 import { attachWindowChrome } from './chrome'
 import { resolveAppIcon } from './app-icon'
+import { loadRenderer } from './load'
+import { AUTH_WINDOW_BACKGROUND } from './constants'
 
 let loginWindow: BrowserWindow | null = null
 
@@ -34,7 +36,7 @@ export function createLoginWindow(options: { showWhenReady?: boolean } = {}): Br
     fullscreenable: false,
     show: false,
     // 与登录页底色一致，消掉首帧白闪
-    backgroundColor: '#f2f0ea',
+    backgroundColor: AUTH_WINDOW_BACKGROUND,
     title: APP_NAME,
     icon: resolveAppIcon(),
     roundedCorners: true,
@@ -55,7 +57,7 @@ export function createLoginWindow(options: { showWhenReady?: boolean } = {}): Br
   win.on('closed', () => {
     if (loginWindow === win) loginWindow = null
   })
-  void win.loadURL(rendererEntry('/login'))
+  loadRenderer(win, rendererEntry('/login'), '登录窗口')
   return win
 }
 

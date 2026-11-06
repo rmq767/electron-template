@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { Close, Refresh, RefreshLeft } from '@element-plus/icons-vue'
+import { LANDING_PATH } from '@shared/constants/navigation'
 import { useTabsStore } from '@renderer/stores/tabs'
 
 const router = useRouter()
@@ -16,7 +17,13 @@ function onClose(path: string): void {
 }
 
 function refreshCurrent(): void {
-  void router.replace({ path: router.currentRoute.value.fullPath })
+  // replace 同一路由不会重新挂载 keep-alive 组件；go(0) 才是真正的整页刷新
+  router.go(0)
+}
+
+function resetTabs(): void {
+  tabs.reset()
+  if (router.currentRoute.value.path !== LANDING_PATH) void router.push(LANDING_PATH)
 }
 </script>
 
@@ -53,7 +60,7 @@ function refreshCurrent(): void {
       <button type="button" class="tab-action" title="刷新当前页" @click="refreshCurrent">
         <el-icon><refresh /></el-icon>
       </button>
-      <button type="button" class="tab-action" title="重置标签" @click="tabs.reset()">
+      <button type="button" class="tab-action" title="重置标签" @click="resetTabs">
         <el-icon><refresh-left /></el-icon>
       </button>
     </div>

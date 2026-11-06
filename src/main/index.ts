@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, session } from 'electron'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { APP_ID, APP_NAME } from '@shared/constants/app'
 import { closeAllWindows } from '@main/window/manager'
@@ -25,6 +25,11 @@ if (acquireSingleInstanceLock()) {
     pruneLogs()
     logger.info('主进程就绪', { version: app.getVersion(), packaged: app.isPackaged })
 
+    // 模板默认不申请摄像头/麦克风/通知等系统权限；需要时在这里按白名单放行
+    session.defaultSession.setPermissionRequestHandler((_contents, _permission, callback) => {
+      callback(false)
+    })
+
     buildApplicationMenu()
     registerGlobalShortcuts()
 
@@ -44,6 +49,10 @@ if (acquireSingleInstanceLock()) {
     closeSplashWindow()
     closeLoginWindow()
     closeAllWindows()
+  })
+
+  app.on('will-quit', () => {
+    logger.shutdown()
   })
 
   app.on('window-all-closed', () => {
