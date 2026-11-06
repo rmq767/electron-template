@@ -170,16 +170,17 @@ dialog、drawer 与（需要时的）独立窗口复用的原因。没有为此�
 
 **令牌**（`styles/index.scss`，`html.dark` 是同语义映射）：
 
-| 角色           | 亮色                  | 暗色                  | 用途              |
-| -------------- | --------------------- | --------------------- | ----------------- |
-| `canvas`       | `#f2f3f5`             | `#13161b`             | 工作区底色        |
-| `surface`      | `#ffffff`             | `#1a1e25`             | 面板 / 输入框     |
-| `border`       | `#e2e5ea`             | `#2a303a`             | 分割线与描边      |
-| `ink` / muted  | `#171a21` / `#7d8797` | `#e9ecf1` / `#8792a2` | 主 / 次文本       |
-| `accent-solid` | `#0f766e`             | `#12857a`             | 主按钮填充        |
-| `accent`       | `#0f766e`             | `#5ed3c4`             | 可交互文字 / 图标 |
-| `sidebar`      | `#fbfcfd`             | `#0e1115`             | 侧栏              |
-| `titlebar`     | `#f7f8fa`             | `#0b0e12`             | 自定义标题栏      |
+| 角色           | 亮色                   | 暗色                  | 用途              |
+| -------------- | ---------------------- | --------------------- | ----------------- |
+| `canvas`       | `#f2f3f5`              | `#13161b`             | 工作区底色        |
+| `surface`      | `#ffffff`              | `#1a1e25`             | 面板 / 输入框     |
+| `border`       | `#e2e5ea`              | `#2a303a`             | 分割线与描边      |
+| `ink` / muted  | `#171a21` / `#7d8797`  | `#e9ecf1` / `#8792a2` | 主 / 次文本       |
+| `accent-solid` | `#0f766e`              | `#12857a`             | 主按钮填充        |
+| `accent`       | `#0f766e`              | `#5ed3c4`             | 可交互文字 / 图标 |
+| `sidebar`      | `#fbfcfd`              | `#0e1115`             | 侧栏              |
+| `titlebar`     | `#f7f8fa`              | `#0b0e12`             | 自定义标题栏      |
+| `loading-mask` | `rgba(255,255,255,.8)` | `rgba(19,22,27,.72)`  | v-loading 遮罩    |
 
 `styles/index.scss` 用 `$theme-tokens` 的 light / dark 两套 map 生成 `:root` 与 `html.dark`；
 新增颜色、阴影令牌必须同时补齐两侧。标题栏、侧栏、窗口控件、品牌标与遮罩也全部走 `--app-*`，
@@ -354,6 +355,7 @@ token 存 userData；401 → `clear()` → 去重后直接请求 `app:show-login
 | 自定义窗口控件                         | 最大化/还原后 `evt:window-state` 回推正确，图标切换；子窗口点标题栏 X 返回 `{ok:false, reason:'cancelled'}` 而不抛异常                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | 桌面主题覆盖顺序                       | Element 暗色变量必须先于 `element-theme.scss`；反过来 `html.dark` 会盖掉项目令牌。亮/暗两套主题、文字按钮、plain 按钮均已实测                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | 弹层遮罩主题化                         | Element 的 `.el-overlay` 实际读 `--el-overlay-color-lighter`（不是 `--el-mask-color`）；已映射到 `--app-mask`，亮色 `rgba(8,12,18,.42)`、暗色 `rgba(0,0,0,.55)`，CDP 实测 computed `backgroundColor` 与令牌一致                                                                                                                                                                                                                                                                                                                                     |
+| v-loading 遮罩主题化（2026-11-06）     | Element 的 `.el-loading-mask` 读 `--el-mask-color`（此前被映射成 `--app-mask`，亮色下是黑块）；改为独立令牌 `--app-loading-mask`：亮色 `rgba(255,255,255,.8)`、暗色 `rgba(19,22,27,.72)`，spinner 路径与文字读 `--app-accent`。CDP 真实点击搜索触发 v-loading，亮色 computed `rgba(255,255,255,.8)` / `rgb(15,118,110)`，暗色 `rgba(19,22,27,.72)` / `rgb(94,211,196)`，遮罩覆盖表格 1007×440、`z-index:2000`                                                                                                                                       |
 | kebab-case 强制                        | 文件、模板标签、`defineOptions.name` 与路由 name 统一后，ESLint `vue/component-definition-name-casing` 零告警；标签页 keep-alive 正常                                                                                                                                                                                                                                                                                                                                                                                                               |
 | 窗口首屏延迟 / 内存                    | 174–213ms / 约 150MB working set（高估，见 window-vs-dialog）                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | **中文路径是不是打包障碍**             | **分阶段结论**：下载阶段不是；**输出目录移动阶段是**。默认 `release/` 在中文路径下解压 Electron 后会 `EBUSY`（`default_app.asar`），把输出指到 ASCII 路径（`BUILD_OUTPUT_DIR`）后 `--dir` / `--win` 均通过。此前"路径完全无关"的结论只覆盖了下载阶段，已修正                                                                                                                                                                                                                                                                                        |

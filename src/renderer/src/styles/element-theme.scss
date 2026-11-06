@@ -582,3 +582,17 @@ html.dark {
   color: var(--app-muted);
   font-size: 12.5px;
 }
+
+/* ---- 加载：遮罩跟随主题（亮色用半透明表面色，不能是黑块），指示器用可交互色 ---- */
+.el-loading-mask {
+  background-color: var(--app-loading-mask);
+}
+
+.el-loading-spinner .path {
+  stroke: var(--app-accent);
+}
+
+.el-loading-spinner .el-loading-text,
+.el-loading-spinner i {
+  color: var(--app-accent);
+}

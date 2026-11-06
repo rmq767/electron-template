@@ -116,6 +116,7 @@ src/renderer   普通 Vue 应用；禁 Node/electron，只认 window.api
 - 样式统一用 SCSS：组件写 `<style scoped lang="scss">`，ESLint 已强制；新增颜色/阴影先加 `--app-*` 令牌，light / dark 两侧同时补齐。
 - **禁止在组件里写 `:deep(.el-dialog__header)` 这类局部 Element 覆盖**；要改就改主题文件，让全项目生效。
 - 颜色、圆角、阴影一律用 `--app-*` token，不写死十六进制色值；字号与间距按下方桌面基准值（不额外造 token 档位），亮/暗两套主题必须同时可用。
+- `v-loading` 遮罩读 `--app-loading-mask`（亮色半透明白、暗色半透明深底），指示器读 `--app-accent`；不要复用模态遮罩 `--app-mask`，否则亮色下会出现黑块。
 - 组件文件、模板标签、`defineOptions.name`、路由 `name` 一律 **kebab-case**；ESLint 已强制，不要关规则。
 - 组件 API 不做 `size` 枚举档位；需要改宽度/高度就传具体值。
 - 共用外观的浮层/控件抽成全局组件，不要每个页面复制一份样式。
